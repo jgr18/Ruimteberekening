@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ruimtebehoefte – analyse Xedule-export (v0.7)</title>
+<title>Ruimtebehoefte – analyse Xedule-export (v0.8)</title>
 <style>
 :root{
   --surface-0:#f4f3ef; --surface-1:#fcfcfb; --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#7a7972;
@@ -56,6 +56,24 @@ th{font-weight:600;color:var(--text-secondary);font-size:12px;background:var(--s
 td.l,th.l{text-align:left}
 tr.loc td{background:#f3f2ee;font-weight:650;text-align:left}
 td.alloc{font-weight:650}
+.tb2wrap{overflow:auto}
+table.tb2{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+table.tb2 th,table.tb2 td{padding:6px 12px;white-space:nowrap;text-align:right;border:none}
+table.tb2 th.l,table.tb2 td.l{text-align:left}
+table.tb2 thead th{background:#f1f0eb;position:static;font-size:12.5px}
+table.tb2 tr.h1 th{color:var(--text-primary);font-weight:650}
+table.tb2 tr.h1 th.grp{text-align:center;border-bottom:1px solid var(--axis)}
+table.tb2 tr.h1 th[rowspan]{vertical-align:bottom;border-bottom:2px solid var(--text-primary)}
+table.tb2 tr.h2 th{border-bottom:2px solid var(--text-primary)}
+table.tb2 th.sec{color:var(--text-secondary);font-weight:500}
+table.tb2 th.pri{color:var(--text-primary);font-weight:650}
+table.tb2 .g0{border-left:1px solid var(--grid)}
+table.tb2 tr.lochead td{font-weight:650;text-align:left;padding-top:14px;border-bottom:1px solid var(--axis);font-size:14px}
+table.tb2 td.ind{padding-left:24px}
+table.tb2 tr.zebra td{background:#f6f5f1}
+table.tb2 td.alloc{font-weight:650}
+table.tb2 td.over{color:var(--critical);font-weight:650}
+table.tb2 tr.locend td{padding:0;height:4px}
 table.t2 th.grp{text-align:center;border-bottom:1px solid var(--axis);border-left:1px solid var(--grid);color:var(--text-primary)}
 table.t2 .g0{border-left:1px solid var(--grid)}
 table.t2 thead tr:nth-child(2) th{top:29px}
@@ -143,7 +161,7 @@ table.ctab{width:auto;margin:6px 0;font-size:13px}
 </head>
 <body>
 <header>
-  <h1>Ruimtebehoefte per faciliteittype en opleiding <span style="font-size:13px;font-weight:500;color:var(--text-muted);vertical-align:3px">v0.7 · concept</span></h1>
+  <h1>Ruimtebehoefte per faciliteittype en opleiding <span style="font-size:13px;font-weight:500;color:var(--text-muted);vertical-align:3px">v0.8 · concept</span></h1>
   <p>Analyse op basis van Xedule-exports. Alle berekeningen gebeuren in je eigen browser: er worden geen gegevens geüpload of opgeslagen op een server.</p>
 </header>
 <main>
@@ -566,12 +584,15 @@ function buildAnalysis(box,per,teams,print){
   const weeks=per==='jaar'?D.weeks.filter(counted):D.weeks.filter(w=>weekCat(w)===per);
   const cats=per==='jaar'?CATS:[per];
   let t=`<div class="note" style="margin:6px 0 4px">Benodigde lokalen per week (1 decimaal). Mediaan per groep weken (2 decimalen). Toe te wijzen = mediaan × ${fstr(S.settings.factor)} (streefbezetting ${S.settings.target}%)${S.settings.roundStep?`, naar boven afgerond op ${fstr(S.settings.roundStep)} lokaal (dagdeel)`:''}.</div>`;
-  const nsub=per==='jaar'?2:3;
-  t+=`<div class="scroll" style="max-height:none"><table class="t2"><thead><tr><th class="l" rowspan="2">Locatie</th><th class="l" rowspan="2">Faciliteittype</th>${cats.map(c=>`<th colspan="${nsub}" class="grp">${CAT_LABEL[c]}</th>`).join('')}</tr><tr>${cats.map(()=>`<th class="g0">mediaan</th><th>toe te wijzen</th>${per==='jaar'?'':'<th>weken boven toewijzing</th>'}`).join('')}</tr></thead><tbody>`;
+  const nsub=per==='jaar'?2:3; const ncol=1+cats.length*nsub;
+  t+=`<div class="tb2wrap"><table class="tb2"><thead><tr class="h1"><th class="l" rowspan="2">Faciliteittype</th>${cats.map(c=>`<th colspan="${nsub}" class="grp">${CAT_LABEL[c]}</th>`).join('')}</tr><tr class="h2">${cats.map(()=>`<th class="g0 sec">Mediaan</th><th class="pri">Toe te wijzen</th>${per==='jaar'?'':'<th class="sec">Weken boven toewijzing</th>'}`).join('')}</tr></thead><tbody>`;
   const ALT=allLocTypes();
-  for(const lt of ALT){ const st=stats(lt,teams);
-    const over=weeks.filter(w=>wl(lt,w,teams)>st[weekCat(w)].alloc+1e-9).length;
-    t+=`<tr><td class="l">${esc(lt.loc)}</td><td class="l">${esc(lt.type)}</td>${cats.map(c=>`<td class="g0">${fmtM(st[c].med)}</td><td class="alloc">${fmt(st[c].alloc)}</td>${per==='jaar'?'':`<td>${over?`<span class="warn">${over}</span>`:'0'} / ${weeks.length}</td>`}`).join('')}</tr>`; }
+  for(const loc of LOCS){ const lts=ALT.filter(x=>x.loc===loc); if(!lts.length) continue;
+    t+=`<tr class="lochead"><td colspan="${ncol}">${esc(loc)}</td></tr>`;
+    lts.forEach((lt,i)=>{ const st=stats(lt,teams);
+      t+=`<tr class="${i%2?'zebra':''}"><td class="l ind">${esc(lt.type)}</td>${cats.map(c=>{ const wk=weeks.filter(w=>weekCat(w)===c); const over=wk.filter(w=>wl(lt,w,teams)>st[c].alloc+1e-9).length;
+        return `<td class="g0">${fmtM(st[c].med)}</td><td class="alloc">${fmt(st[c].alloc)}</td>${per==='jaar'?'':`<td class="${over?'over':''}">${over} van ${wk.length}</td>`}`; }).join('')}</tr>`; });
+    t+=`<tr class="locend"><td colspan="${ncol}"></td></tr>`; }
   const tb=document.createElement('div'); tb.innerHTML=t+'</tbody></table></div>'; box.appendChild(tb);
   const lg=document.createElement('div'); lg.className='legend';
   lg.innerHTML=`<span><i class="sw" style="background:var(--s1)"></i>benodigde lokalen per week</span><span><i class="sw" style="background:var(--critical)"></i>boven toewijzing</span><span><i class="ln dash"></i>mediaan</span><span><i class="ln"></i>toe te wijzen</span>${per==='jaar'?'<span><i class="sw" style="background:var(--band-toets)"></i>toetsweken</span>':''}`;
@@ -683,7 +704,7 @@ function loadDemo(){
 
 
 /* ============ Export: rapportgegevens ============ */
-const APP_VERSION='0.7 (concept)';
+const APP_VERSION='0.8 (concept)';
 const dNL=iso=>{ if(!iso) return ''; const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}-${m[2]}-${m[1]}`:iso; };
 const todayNL=()=>new Date().toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit',year:'numeric'}).replace(/\//g,'-');
 function reportMeta(teams){ const st=S.settings; return [

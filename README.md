@@ -1,6 +1,6 @@
 # Ruimtebehoefte per faciliteittype en opleiding
 
-Versie 0.7 (concept)
+Versie 0.8 (concept)
 
 Webapp die de ruimtebehoefte van de academie berekent uit Xedule-exports:
 per locatie, faciliteittype en periode, voor alle opleidingen samen of voor een combinatie van opleidingen.
