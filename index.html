@@ -110,7 +110,7 @@ select.bad{border-color:var(--critical);background:#fdf3f3}
 </head>
 <body>
 <header>
-  <h1>Ruimtebehoefte per faciliteittype en opleiding <span style="font-size:13px;font-weight:500;color:var(--text-muted);vertical-align:3px">v0.2</span></h1>
+  <h1>Ruimtebehoefte per faciliteittype en opleiding <span style="font-size:13px;font-weight:500;color:var(--text-muted);vertical-align:3px">v0.3</span></h1>
   <p>Analyse op basis van Xedule-exports. Alle berekeningen gebeuren in je eigen browser: er worden geen gegevens geüpload of opgeslagen op een server.</p>
 </header>
 <main>
@@ -142,6 +142,7 @@ select.bad{border-color:var(--critical);background:#fdf3f3}
       <button data-stab="algemeen" class="active">Algemeen</button>
       <button data-stab="weken">Weekindeling</button>
       <button data-stab="sets">Faciliteittypesets</button>
+      <button data-stab="progs">Onderwijsprogramma's</button>
       <button data-stab="delen">Instellingen delen</button>
     </nav>
     <div class="stab active" id="stab-algemeen" style="padding-top:14px">
@@ -158,8 +159,9 @@ select.bad{border-color:var(--critical);background:#fdf3f3}
     </div>
     <div class="stab" id="stab-weken" style="padding-top:14px"><div id="kalender" class="empty">Importeer eerst de kalenderweken.</div></div>
     <div class="stab" id="stab-sets" style="padding-top:14px"><div id="setsEdit" class="empty">Importeer eerst de faciliteittypesets en onderwijsregels.</div></div>
+    <div class="stab" id="stab-progs" style="padding-top:14px"><div id="progEdit" class="empty">Importeer eerst de onderwijsregels.</div></div>
     <div class="stab" id="stab-delen" style="padding-top:14px">
-      <p style="margin-top:0">Je instellingen (algemeen, weekindeling en koppeling van faciliteittypesets) worden bewaard in deze browser. Wil je ze delen met collega's of bewaren, exporteer ze dan naar een bestand.</p>
+      <p style="margin-top:0">Je instellingen (algemeen, weekindeling, koppeling van faciliteittypesets en van onderwijsprogramma's) worden bewaard in deze browser. Wil je ze delen met collega's of bewaren, exporteer ze dan naar een bestand.</p>
       <div class="filters"><button class="btn" id="expSet">Instellingen exporteren (.json)</button><button class="btn" id="impSetBtn">Instellingen importeren</button><input type="file" id="impSet" accept=".json" hidden><button class="btn" id="resetAll">Alles terugzetten naar standaard</button></div>
       <p class="note">Tip: zet je het bestand als <code>instellingen.json</code> naast <code>index.html</code> in de GitHub-repository, dan krijgt iedereen die de app voor het eerst opent deze instellingen als standaard. Het bestand bevat alleen instellingen, geen roostergegevens.</p>
       <div id="shareStatus"></div>
@@ -250,7 +252,7 @@ const KIND_LABEL={onderwijs:'Onderwijsregels',programma:"Onderwijsprogramma's en
 const KIND_HINT={onderwijs:'Kolommen Onderwijsproduct, Onderwijsprogramma, W36…W35, Blokken (RE/minuten), sets',programma:'Kolommen Code en Team',sets:'Kolommen Faciliteittypeset, Faciliteittype, Locatie, Meenemen',kalender:'Kolommen Week, lesweek, periode, Semester'};
 
 /* ============ Status ============ */
-const S={kinds:{},settings:{},weekOv:{},setOv:{},view:{per:'S1-les',teams:null,sort:'week'}};
+const S={kinds:{},settings:{},weekOv:{},setOv:{},progOv:{},view:{per:'S1-les',teams:null,sort:'week'}};
 let D=null;
 const norm=v=>v==null?'':String(v).trim();
 const lc=v=>norm(v).toLowerCase();
@@ -294,14 +296,14 @@ function stdLoc(raw,setName){ const s=lc(raw); for(const l of LOCS) if(s.include
 /* ============ Rekenkern ============ */
 function parseAll(){
   const st=S.settings, K=S.kinds;
-  const out={issues:{noSet:[],unmapped:{},noLoc:{},noTeam:{},badBlok:[],vacation:{},notInCal:{},excl:{},spec:{}},weeks:[],agg:{},teams:[],locTypes:[],setBase:{},setMap:{},setTotals:{},setNames:[],nRows:0};
+  const out={issues:{noSet:[],unmapped:{},noLoc:{},noTeam:{},badBlok:[],vacation:{},vacList:[],notInCal:{},excl:{},spec:{}},weeks:[],agg:{},teams:[],locTypes:[],setBase:{},setMap:{},setTotals:{},setNames:[],progBase:{},progMap:{},progNames:[],progCount:{},nRows:0};
   // sets: basis uit bestand, daarna aanpassingen
   if(K.sets){ const R=K.sets.rows,h=R[K.sets.h].map(lc); const iS=h.indexOf('faciliteittypeset'),iT=h.indexOf('faciliteittype'),iL=h.indexOf('locatie'),iM=h.indexOf('meenemen');
     for(const r of R.slice(K.sets.h+1)){ const k=norm(r[iS]); if(!k) continue; let t=stdType(r[iT]); const mee=iM<0||lc(r[iM])!=='nee';
       if(!t||(!mee&&t!=='Specifiek')) t=EXCL; out.setBase[k]={type:t,loc:stdLoc(r[iL],k),raw:norm(r[iT])}; } }
   const progMap={};
   if(K.programma){ const R=K.programma.rows,h=R[K.programma.h].map(lc); const iC=h.indexOf('code'),iT=h.indexOf('team');
-    for(const r of R.slice(K.programma.h+1)){ const k=norm(r[iC]); if(k) progMap[k]=norm(r[iT])||'Onbekend'; } }
+    for(const r of R.slice(K.programma.h+1)){ const k=norm(r[iC]); if(k&&norm(r[iT])) out.progBase[k]=norm(r[iT]); } }
   const cal={}, order=[];
   if(K.kalender){ const R=K.kalender.rows,h=R[K.kalender.h].map(lc); const iW=h.indexOf('week'),iL=h.indexOf('lesweek'),iP=h.indexOf('periode'),iS=h.indexOf('semester');
     const iType=h.findIndex(x=>/^(type|soort|weektype)/.test(x));
@@ -313,6 +315,9 @@ function parseAll(){
   const weekCols=[]; H.forEach((x,i)=>{ if(/^W\d{1,2}$/i.test(x)) weekCols.push([i,x.toUpperCase()]); });
   const setCols=[]; H.forEach((x,i)=>{ if(i>iBlok&&x) setCols.push([i,x]); });
   for(const [,w] of weekCols) if(!cal[w]){ cal[w]={week:w,lesweek:'',periode:'',semester:''}; order.push(w); if(K.kalender) out.issues.notInCal[w]=1; }
+  const progsInData=new Set(); for(let ri=hr+1;ri<R.length;ri++){ const pr=norm(R[ri][iProg]); if(pr){ progsInData.add(pr); out.progCount[pr]=(out.progCount[pr]||0)+1; } }
+  out.progNames=[...new Set([...progsInData,...Object.keys(out.progBase)])].sort((a,b)=>a.localeCompare(b,'nl'));
+  for(const n of out.progNames){ const o=S.progOv[n]; const t=o!=null?o:out.progBase[n]; if(t) progMap[n]=t; } out.progMap=progMap;
   out.setNames=[...new Set([...Object.keys(out.setBase),...setCols.map(([,x])=>x)])].sort((a,b)=>a.localeCompare(b,'nl'));
   for(const n of out.setNames){ const b=out.setBase[n]||{type:'',loc:stdLoc('',n)}; const o=S.setOv[n]; out.setMap[n]=o?{type:o.type,loc:o.loc}:{type:b.type,loc:b.loc}; }
   const agg={}, teamSet=new Set();
@@ -325,7 +330,7 @@ function parseAll(){
     const reqs=setCols.map(([i,s])=>[s,Number(String(r[i]??'').replace(',','.'))]).filter(([,q])=>q>0);
     if(!reqs.length){ out.issues.noSet.push({prod,prog,re:b.re*active.length}); continue; }
     for(const [sn,q] of reqs) out.setTotals[sn]=(out.setTotals[sn]||0)+b.re*q*active.length;
-    for(const w of active){ if(!cal[w].lesweek) out.issues.vacation[w]=(out.issues.vacation[w]||0)+1;
+    for(const w of active){ if(!cal[w].lesweek){ out.issues.vacation[w]=(out.issues.vacation[w]||0)+1; out.issues.vacList.push({w,prod,prog,team}); }
       for(const [sn,q] of reqs){ const m=out.setMap[sn], v=b.re*q;
         if(!m.type){ out.issues.unmapped[sn]=(out.issues.unmapped[sn]||0)+v; continue; }
         if(m.type===EXCL){ out.issues.excl[sn]=(out.issues.excl[sn]||0)+v; continue; }
@@ -360,12 +365,12 @@ function readSettings(){ const st=S.settings;
   st.cap=+$('cap').value||56; st.target=Math.min(100,Math.max(1,+$('target').value||80)); st.factor=100/st.target; st.minOne=$('minOne').checked; st.minPerRE=+$('minPerRE').value||45; st.reMax=+$('reMax').value||17; st.roundStep=Math.max(0,+$('roundStep').value||0);
   $('factorOut').textContent=fstr(st.factor); store.set('settings',{cap:st.cap,target:st.target,minOne:st.minOne,minPerRE:st.minPerRE,reMax:st.reMax,roundStep:st.roundStep}); }
 function applySettingsObj(o){ const g=Object.assign({},DEFAULTS,o.algemeen||o.settings||{}); for(const k of Object.keys(DEFAULTS)) setField(k,g[k]);
-  S.weekOv=o.weekindeling||o.weekcats||{}; S.setOv=o.faciliteittypesets||o.setoverride||{}; store.set('weekcats',S.weekOv); store.set('setov',S.setOv); readSettings(); }
+  S.weekOv=o.weekindeling||o.weekcats||{}; S.setOv=o.faciliteittypesets||o.setoverride||{}; S.progOv=o.onderwijsprogrammas||{}; store.set('weekcats',S.weekOv); store.set('setov',S.setOv); store.set('progov',S.progOv); readSettings(); }
 async function loadSettings(){
-  if(!store.has('settings')&&!store.has('weekcats')&&!store.has('setov')){ try{ const r=await fetch('instellingen.json',{cache:'no-store'}); if(r.ok){ applySettingsObj(await r.json()); return; } }catch(e){} }
+  if(!store.has('settings')&&!store.has('weekcats')&&!store.has('setov')&&!store.has('progov')){ try{ const r=await fetch('instellingen.json',{cache:'no-store'}); if(r.ok){ applySettingsObj(await r.json()); return; } }catch(e){} }
   const s=store.get('settings',{}); for(const k of Object.keys(DEFAULTS)) setField(k,s[k]??DEFAULTS[k]);
-  S.weekOv=store.get('weekcats',{}); S.setOv=store.get('setov',{}); readSettings(); }
-function exportSettings(){ const o={app:'ruimtebehoefte',versie:1,datum:new Date().toISOString().slice(0,10),algemeen:store.get('settings',{}),weekindeling:S.weekOv,faciliteittypesets:S.setOv};
+  S.weekOv=store.get('weekcats',{}); S.setOv=store.get('setov',{}); S.progOv=store.get('progov',{}); readSettings(); }
+function exportSettings(){ const o={app:'ruimtebehoefte',versie:1,datum:new Date().toISOString().slice(0,10),algemeen:store.get('settings',{}),weekindeling:S.weekOv,faciliteittypesets:S.setOv,onderwijsprogrammas:S.progOv};
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'})); a.download='instellingen.json'; a.click(); }
 
 /* ============ Import-tab ============ */
@@ -398,16 +403,18 @@ function renderControle(){
   const missing=Object.keys(KIND_LABEL).filter(k=>!S.kinds[k]); if(missing.length) li.push(sub('warn',`Nog niet geïmporteerd: ${missing.map(k=>KIND_LABEL[k]).join(', ')}`));
   const un=Object.entries(I.unmapped); if(un.length) li.push(sub('warn',`${un.length} faciliteittypesets zijn nog niet aan een faciliteittype gekoppeld; ${re(un.reduce((a,b)=>a+b[1],0))} lokaaluren tellen niet mee. Koppel ze bij Instellingen → Faciliteittypesets.`,un.map(([s,v])=>`<li>${esc(s)}: ${re(v)} lokaaluren</li>`)));
   const nl=Object.entries(I.noLoc); if(nl.length) li.push(sub('warn',`${nl.length} faciliteittypesets hebben geen locatie en tellen niet mee.`,nl.map(([s,v])=>`<li>${esc(s)}: ${re(v)} lokaaluren</li>`)));
-  const nt=Object.entries(I.noTeam); if(nt.length) li.push(sub('warn',`${nt.length} onderwijsprogramma's staan niet in het bestand met opleidingen; ze tellen mee als "Onbekend".`,nt.map(([p,n])=>`<li>${esc(p)} (${n} regels)</li>`)));
+  const nt=Object.entries(I.noTeam); if(nt.length) li.push(sub('warn',`${nt.length} onderwijsprogramma's zijn niet aan een opleiding gekoppeld en tellen mee als "Onbekend". Koppel ze bij Instellingen → Onderwijsprogramma's.`,nt.map(([p,n])=>`<li>${esc(p)} (${n} regels)</li>`)));
   if(I.badBlok.length) li.push(sub('warn',`${I.badBlok.length} regels hebben een onleesbare waarde in Blokken (RE/minuten) en tellen niet mee.`,I.badBlok.map(x=>`<li>${esc(x.prod)} · ${esc(x.prog)} · "${esc(x.val)}"</li>`)));
   const nc=Object.keys(I.notInCal); if(nc.length) li.push(sub('warn',`Weken in de onderwijsregels die niet in de kalender staan: ${nc.join(', ')}`));
   if(I.noSet.length) li.push(sub('',`${I.noSet.length} regels hebben geen faciliteittypeset (${re(I.noSet.reduce((a,b)=>a+b.re,0))} RE, tellen niet mee).`,I.noSet.map(x=>`<li>${esc(x.prod)} · ${esc(x.prog)} · ${re(x.re)} RE</li>`)));
-  const vac=Object.entries(I.vacation); if(vac.length) li.push(sub('',`${vac.reduce((a,b)=>a+b[1],0)} keer is onderwijs gepland in een vakantieweek (telt niet mee).`,vac.map(([w,n])=>`<li>${w}: ${n} regels</li>`)));
+  if(I.vacList.length){ const g={}; for(const x of I.vacList){ const k=x.prod+'||'+x.prog; const o=(g[k]??={prod:x.prod,prog:x.prog,team:x.team,weeks:new Set(),n:0}); o.weeks.add(x.w); o.n++; }
+    const order=D.weeks.map(w=>w.week); const rows=Object.values(g).sort((a,b)=>a.prog.localeCompare(b.prog,'nl')||a.prod.localeCompare(b.prod,'nl'));
+    li.push(`<li>${I.vacList.length} keer is onderwijs gepland in een vakantieweek (telt niet mee): ${rows.length} combinaties van onderwijsproduct en programma.<details><summary>toon details</summary><table style="width:auto;margin:6px 0"><thead><tr><th class="l">Onderwijsproduct</th><th class="l">Onderwijsprogramma</th><th class="l">Opleiding</th><th class="l">Vakantieweken</th><th>Aantal</th></tr></thead><tbody>${rows.map(x=>`<tr><td class="l">${esc(x.prod)}</td><td class="l">${esc(x.prog)}</td><td class="l">${esc(x.team)}</td><td class="l">${[...x.weeks].sort((a,b)=>order.indexOf(a)-order.indexOf(b)).join(', ')}</td><td>${x.n}</td></tr>`).join('')}</tbody></table></details></li>`); }
   const sp=Object.entries(I.spec); if(sp.length) li.push(sub('',`Specifieke ruimtes, buiten de berekening: ${re(sp.reduce((a,b)=>a+b[1],0))} lokaaluren uit ${sp.length} sets.`,sp.map(([s,v])=>`<li>${esc(s)}: ${re(v)}</li>`)));
   const ex=Object.entries(I.excl); if(ex.length) li.push(sub('',`Buiten beschouwing gelaten: ${re(ex.reduce((a,b)=>a+b[1],0))} lokaaluren uit ${ex.length} sets.`,ex.map(([s,v])=>`<li>${esc(s)}: ${re(v)}</li>`)));
-  const c=issueCount();
+  const c=issueCount(); const openIdx=[...$('controle').querySelectorAll('details')].map(d=>d.open);
   $('controle').innerHTML=`<div class="banner ${c.err?'warn':'ok'}"><span class="ic">${c.err?'!':'✓'}</span><div>${c.err?`${c.err} ${c.err===1?'punt vraagt':'punten vragen'} aandacht (rood). De overige punten zijn ter informatie.`:'Geen problemen gevonden. De punten hieronder zijn ter informatie.'} ${D.nRows} onderwijsregels gelezen, ${D.teams.length} opleidingen, ${D.locTypes.length} combinaties van locatie en faciliteittype.</div></div><ul class="checks">${li.join('')}</ul>`;
-  $('controle').classList.remove('empty');
+  $('controle').classList.remove('empty'); $('controle').querySelectorAll('details').forEach((d,i)=>{ if(openIdx[i]) d.open=true; });
   const b=$('badgeCtl'); b.style.display=c.err?'':'none'; b.textContent=c.err;
 }
 
@@ -422,18 +429,37 @@ function renderKalender(){
   h+=`<div class="wkgrid">`+colOrder.map(pk=>`<div class="wkcol"><div class="wkhead">Periode ${esc(pk)}</div>`+cols[pk].map(w=>{ const c=weekCat(w), ov=!!S.weekOv[w.week]; const cls=c==='uit'?'uit':c.endsWith('toets')?'toets':'les';
       return `<div class="wkrow ${cls} ${ov?'changed':''}"><span class="wk">${w.week}</span><span class="lw">${esc(w.lesweek)||'vak.'}</span><select data-w="${w.week}">${[...CATS,'uit'].map(o=>`<option value="${o}" ${o===c?'selected':''}>${o==='uit'?'Telt niet mee':CAT_SHORT[o]}</option>`).join('')}</select></div>`; }).join('')+`</div>`).join('')+`</div>`;
   $('kalender').innerHTML=h; $('kalender').classList.remove('empty');
-  $('kalender').querySelectorAll('select').forEach(s=>s.onchange=()=>{ const w=D.weeks.find(x=>x.week===s.dataset.w); if(s.value===defaultCat(w)) delete S.weekOv[w.week]; else S.weekOv[w.week]=s.value; store.set('weekcats',S.weekOv); renderKalender(); renderAnalyse(); });
+  $('kalender').querySelectorAll('select').forEach(s=>s.onchange=()=>{ const w=D.weeks.find(x=>x.week===s.dataset.w); if(s.value===defaultCat(w)) delete S.weekOv[w.week]; else S.weekOv[w.week]=s.value; store.set('weekcats',S.weekOv); keepScroll(()=>{ renderKalender(); renderAnalyse(); }); });
   $('resetWT').onclick=()=>{ S.weekOv={}; store.set('weekcats',{}); renderKalender(); renderAnalyse(); };
+}
+function keepScroll(fn){ const y=window.scrollY; const inner=[...document.querySelectorAll('.stab.active .scroll')].map(e=>e.scrollTop); fn();
+  requestAnimationFrame(()=>{ document.querySelectorAll('.stab.active .scroll').forEach((e,i)=>{ if(inner[i]!=null) e.scrollTop=inner[i]; }); window.scrollTo(0,y); }); }
+function renderProgs(){
+  const el=$('progEdit'); if(!D.progNames.length) return;
+  const teams=[...new Set([...Object.values(D.progBase),...Object.values(S.progOv)].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'nl'));
+  const only=el.dataset.only==='1';
+  const missing=D.progNames.filter(n=>!D.progMap[n]);
+  let h=`<div class="filters" style="justify-content:space-between;align-items:flex-start"><div class="note" style="max-width:900px;margin:0">Koppel elk onderwijsprogramma aan een opleiding. Kies een bestaande opleiding uit de lijst of typ een nieuwe naam. De beginwaarden komen uit het bestand met onderwijsprogramma's; regels die daarvan afwijken zijn vetgedrukt.</div><button class="btn" id="resetProgs">Herstel naar bestand</button></div>`;
+  h+=`<div class="filters"><label class="inline"><input type="checkbox" id="progOnly" ${only?'checked':''}> toon alleen programma's zonder opleiding (${missing.length})</label></div>`;
+  h+=`<datalist id="dlTeams">${teams.map(t=>`<option value="${esc(t)}">`).join('')}</datalist>`;
+  h+=`<div class="scroll"><table style="width:auto"><thead><tr><th class="l">Onderwijsprogramma</th><th class="l">In bestand</th><th class="l">Opleiding</th><th>Onderwijsregels</th></tr></thead><tbody>`;
+  for(const n of (only?missing:D.progNames)){ const b=D.progBase[n], cur=D.progMap[n]||'', ch=S.progOv[n]!=null&&!!b;
+    h+=`<tr data-p="${esc(n)}" class="${ch?'changed':''}"><td class="l">${esc(n)}</td><td class="l muted">${b?esc(b):'<span class="warn">ontbreekt</span>'}</td><td class="l"><input class="cell" list="dlTeams" value="${esc(cur)}" placeholder="kies of typ…" style="width:200px;font:inherit;padding:3px 6px;border:1px solid ${cur?'var(--axis)':'var(--critical)'};border-radius:5px;${cur?'':'background:#fdf3f3'}"></td><td>${D.progCount[n]||0}</td></tr>`; }
+  el.innerHTML=h+'</tbody></table></div>'; el.classList.remove('empty');
+  $('progOnly').onchange=e=>{ el.dataset.only=e.target.checked?'1':''; renderProgs(); };
+  el.querySelectorAll('tr[data-p] input').forEach(inp=>inp.onchange=()=>{ const n=inp.closest('tr').dataset.p, v=inp.value.trim(), b=D.progBase[n]||'';
+    if(v===b) delete S.progOv[n]; else S.progOv[n]=v; store.set('progov',S.progOv); keepScroll(recompute); });
+  $('resetProgs').onclick=()=>{ S.progOv={}; store.set('progov',{}); recompute(); };
 }
 function renderSets(){
   const el=$('setsEdit'); if(!D.setNames.length){ return; }
   const re=v=>v?v.toLocaleString('nl-NL',{maximumFractionDigits:0}):'–';
-  let h=`<div class="filters" style="justify-content:space-between"><div class="note" style="max-width:900px">Koppel elke faciliteittypeset aan een faciliteittype en locatie. Kies <b>${EXCL}</b> om een set niet mee te tellen. <b>Specifiek</b> blijft altijd buiten de berekening. De beginwaarden komen uit het setbestand; aangepaste regels zijn vetgedrukt.</div><button class="btn" id="resetSets">Herstel naar setbestand</button></div>`;
+  let h=`<div class="filters" style="justify-content:space-between"><div class="note" style="max-width:900px">Koppel elke faciliteittypeset aan een faciliteittype en locatie. Kies <b>${EXCL}</b> om een set niet mee te tellen. <b>Specifiek</b> blijft altijd buiten de berekening. De beginwaarden komen uit het setbestand; regels die afwijken van het setbestand zijn vetgedrukt.</div><button class="btn" id="resetSets">Herstel naar setbestand</button></div>`;
   const groups={}; for(const n of D.setNames){ const m=D.setMap[n]; if(!CALC_TYPES.includes(m.type)||!m.loc) continue; const k=m.loc+' · '+m.type; (groups[k]??={loc:m.loc,type:m.type,sets:[]}).sets.push(n); }
   const gl=Object.values(groups).sort((a,b)=>LOCS.indexOf(a.loc)-LOCS.indexOf(b.loc)||TYPES.indexOf(a.type)-TYPES.indexOf(b.type));
   h+=`<details open style="margin-bottom:12px"><summary><b>Zo worden de sets samengevoegd in de analyse</b> (${gl.length} combinaties van locatie en faciliteittype)</summary><div class="rollup" style="margin-top:8px">${gl.map(g=>{ const tot=g.sets.reduce((a,n)=>a+(D.setTotals[n]||0),0); return `<div><b>${esc(g.loc)} · ${esc(g.type)}</b> <span class="muted">${re(tot)} lokaaluren</span><br>${g.sets.map(n=>`${esc(n)}${D.setTotals[n]?'':' <span class="muted">(0)</span>'}`).join('<br>')}</div>`; }).join('')}</div></details>`;
   h+=`<div class="scroll"><table style="width:auto"><thead><tr><th class="l">Faciliteittypeset</th><th class="l">In setbestand</th><th class="l">Faciliteittype</th><th class="l">Locatie</th><th>Lokaaluren in export</th><th class="l">Telt mee</th></tr></thead><tbody>`;
-  for(const n of D.setNames){ const m=D.setMap[n], b=D.setBase[n], ch=!!S.setOv[n];
+  for(const n of D.setNames){ const m=D.setMap[n], b=D.setBase[n], ch=!!S.setOv[n]&&!!b&&!!b.raw;
     const counts=CALC_TYPES.includes(m.type)&&LOCS.includes(m.loc);
     const status=!m.type?'<span class="warn">kies een type</span>':m.type===EXCL?'<span class="muted">nee</span>':m.type==='Specifiek'?'<span class="muted">nee (specifiek)</span>':!m.loc?'<span class="warn">kies een locatie</span>':'ja';
     h+=`<tr data-set="${esc(n)}" class="${ch?'changed':''}"><td class="l">${esc(n)}</td><td class="l muted">${b?esc(b.raw||'–'):'<span class="warn">ontbreekt</span>'}</td>
@@ -443,7 +469,7 @@ function renderSets(){
   el.innerHTML=h+'</tbody></table></div>'; el.classList.remove('empty');
   el.querySelectorAll('tr[data-set]').forEach(tr=>{ const n=tr.dataset.set; tr.querySelectorAll('select').forEach(sel=>sel.onchange=()=>{
       const o={type:tr.querySelector('[data-f=type]').value,loc:tr.querySelector('[data-f=loc]').value}; const b=D.setBase[n];
-      if(b&&b.type===o.type&&b.loc===o.loc) delete S.setOv[n]; else S.setOv[n]=o; store.set('setov',S.setOv); recompute(); }); });
+      if(b&&b.type===o.type&&b.loc===o.loc) delete S.setOv[n]; else S.setOv[n]=o; store.set('setov',S.setOv); keepScroll(recompute); }); });
   $('resetSets').onclick=()=>{ S.setOv={}; store.set('setov',{}); recompute(); };
 }
 
@@ -586,7 +612,7 @@ function loadDemo(){
 function recompute(){ readSettings(); D=parseAll();
   if(S.view.teams) S.view.teams=S.view.teams.filter(t=>D.teams.includes(t)); if(S.view.teams&&!S.view.teams.length) S.view.teams=null;
   renderFiles(); if(!S.kinds.onderwijs&&!S.kinds.kalender&&!S.kinds.sets){ return; }
-  renderControle(); renderKalender(); renderSets(); renderAnalyse(); }
+  renderControle(); renderKalender(); renderSets(); renderProgs(); renderAnalyse(); }
 function showTab(t){ document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===t)); document.querySelectorAll('.tab').forEach(s=>s.classList.toggle('active',s.id==='tab-'+t)); if(t==='analyse') renderAnalyse(); window.scrollTo({top:0}); }
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 document.querySelectorAll('#stabs button').forEach(b=>b.onclick=()=>{ document.querySelectorAll('#stabs button').forEach(x=>x.classList.toggle('active',x===b)); document.querySelectorAll('.stab').forEach(x=>x.classList.toggle('active',x.id==='stab-'+b.dataset.stab)); });

@@ -1,6 +1,6 @@
 # Ruimtebehoefte per faciliteittype en opleiding
 
-Versie 0.2
+Versie 0.3
 
 Webapp die de ruimtebehoefte van de academie berekent uit Xedule-exports:
 per locatie, faciliteittype en periode, voor alle opleidingen samen of voor een combinatie van opleidingen.
@@ -16,8 +16,8 @@ niet op een server opgeslagen. In deze repository staan geen roostergegevens.
    - Faciliteittypesets (kolommen *Faciliteittypeset*, *Faciliteittype*, *Locatie*, *Meenemen*)
    - Kalenderweken (kolommen *Week*, *lesweek*, *periode*, *Semester*)
 2. **Controle** – bekijk wat niet klopt of niet meetelt.
-3. **Instellingen** – algemeen (beschikbare uren per lokaal, streefbezetting), weekindeling en koppeling van
-   faciliteittypesets aan faciliteittype en locatie.
+3. **Instellingen** – algemeen (beschikbare uren per lokaal, streefbezetting), weekindeling, koppeling van
+   faciliteittypesets aan faciliteittype en locatie, en koppeling van onderwijsprogramma's aan opleidingen.
 4. **Analyse** – kies een periode en een selectie van opleidingen.
 
 ## Rekenregel
