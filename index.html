@@ -93,11 +93,24 @@ ul.checks li{margin:6px 0}
 details summary{cursor:pointer;color:var(--text-secondary);font-size:13px;margin-top:2px}
 .note{font-size:12px;color:var(--text-secondary);margin:6px 0 0}
 select.bad{border-color:var(--critical);background:#fdf3f3}
+.wkgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:start}
+.wkcol{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff}
+.wkhead{font-weight:650;font-size:13px;padding:6px 10px;background:#f3f2ee;border-bottom:1px solid var(--grid)}
+.wkrow{display:grid;grid-template-columns:38px 34px 1fr;gap:6px;align-items:center;padding:2px 8px;border-bottom:1px solid var(--grid);font-size:12px}
+.wkrow:last-child{border-bottom:none}
+.wkrow select{font-size:12px;padding:2px 4px;width:100%}
+.wkrow.toets{background:var(--band-toets)}
+.wkrow.uit{background:var(--band-vak);color:var(--text-muted)}
+.wkrow.changed .wk,.wkrow.changed select{font-weight:700}
+.wkrow .lw{color:var(--text-secondary)}
+.rollup{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px;margin:0 0 14px}
+.rollup div{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:#fff;font-size:12px}
+.rollup b{font-size:13px}
 </style>
 </head>
 <body>
 <header>
-  <h1>Ruimtebehoefte per faciliteittype en opleiding</h1>
+  <h1>Ruimtebehoefte per faciliteittype en opleiding <span style="font-size:13px;font-weight:500;color:var(--text-muted);vertical-align:3px">v0.2</span></h1>
   <p>Analyse op basis van Xedule-exports. Alle berekeningen gebeuren in je eigen browser: er worden geen gegevens geüpload of opgeslagen op een server.</p>
 </header>
 <main>
@@ -136,11 +149,12 @@ select.bad{border-color:var(--critical);background:#fdf3f3}
         <label>Beschikbare uren per lokaal per week<input type="number" id="cap" step="1" min="1" value="56"></label>
         <label>Streefbezetting (%)<input type="number" id="target" step="1" min="1" max="100" value="80"></label>
         <label>Opslagfactor mediaan → toewijzing<output id="factorOut" style="padding:6px 0;font-weight:650">1,25</output></label>
-        <label>Eenheid in de analyse<select id="unit"><option value="ruimtes">Aantal lokalen</option><option value="uren">Lokaaluren</option></select></label>
+        <label>Toewijzen per (lokaal)<input type="number" id="roundStep" step="0.05" min="0" value="0.1" title="0,1 = per dagdeel. 0 = niet afronden"></label>
+        <label class="inline" style="align-self:center"><input type="checkbox" id="minOne" checked> minimaal 1 dagdeel toewijzen als er in de periode vraag is</label>
         <label>Minuten per RE (toetsen)<input type="number" id="minPerRE" step="5" min="1" value="45"></label>
         <label>Grens RE / minuten<input type="number" id="reMax" step="1" min="1" value="17" title="Waarden tot en met dit getal zijn RE, daarboven minuten"></label>
       </div>
-      <p class="note">Lokaaluren per week = RE × aantal lokalen per faciliteittypeset. Benodigde lokalen = lokaaluren ÷ beschikbare uren per lokaal. Per groep weken wordt de mediaan genomen; toegewezen = mediaan × (100% ÷ streefbezetting). In de kolom Blokken zijn waarden tot en met de grens RE (lesuren). Hogere waarden zijn minuten (toetsen) en worden gedeeld door het aantal minuten per RE. Waarden als 3/3 of 12/12/12/12/11 worden opgeteld.</p>
+      <p class="note">Lokaaluren per week = RE × aantal lokalen per faciliteittypeset. Benodigde lokalen per week = lokaaluren ÷ beschikbare uren per lokaal, afgerond op 1 decimaal. Per groep weken wordt de mediaan genomen (1 decimaal); toegewezen = mediaan × (100% ÷ streefbezetting), naar boven afgerond op het getal bij "Toewijzen per" (0,1 lokaal = één dagdeel; 0 = niet afronden). In de kolom Blokken zijn waarden tot en met de grens RE (lesuren). Hogere waarden zijn minuten (toetsen) en worden gedeeld door het aantal minuten per RE. Waarden als 3/3 of 12/12/12/12/11 worden opgeteld.</p>
     </div>
     <div class="stab" id="stab-weken" style="padding-top:14px"><div id="kalender" class="empty">Importeer eerst de kalenderweken.</div></div>
     <div class="stab" id="stab-sets" style="padding-top:14px"><div id="setsEdit" class="empty">Importeer eerst de faciliteittypesets en onderwijsregels.</div></div>
@@ -156,6 +170,7 @@ select.bad{border-color:var(--critical);background:#fdf3f3}
   <section class="card tab" id="tab-analyse">
     <div class="ctl"><div class="lab">Periode</div><div class="seg" id="perSeg"></div></div>
     <div class="ctl"><div class="lab">Opleidingen <span class="muted">(klik om een combinatie te kiezen)</span></div><div class="chips" id="teamChips"></div></div>
+    <div class="ctl"><div class="lab">Grafieken sorteren op</div><div class="seg" id="sortSeg"><button data-v="week" class="on">Weeknummer</button><button data-v="size">Grootte</button></div></div>
     <div id="selbox"></div>
     <div id="analyse" class="empty">Importeer eerst de bestanden.</div>
   </section>
@@ -235,7 +250,7 @@ const KIND_LABEL={onderwijs:'Onderwijsregels',programma:"Onderwijsprogramma's en
 const KIND_HINT={onderwijs:'Kolommen Onderwijsproduct, Onderwijsprogramma, W36…W35, Blokken (RE/minuten), sets',programma:'Kolommen Code en Team',sets:'Kolommen Faciliteittypeset, Faciliteittype, Locatie, Meenemen',kalender:'Kolommen Week, lesweek, periode, Semester'};
 
 /* ============ Status ============ */
-const S={kinds:{},settings:{},weekOv:{},setOv:{},view:{per:'S1-les',teams:null}};
+const S={kinds:{},settings:{},weekOv:{},setOv:{},view:{per:'S1-les',teams:null,sort:'week'}};
 let D=null;
 const norm=v=>v==null?'':String(v).trim();
 const lc=v=>norm(v).toLowerCase();
@@ -328,22 +343,27 @@ const weekCat=w=>S.weekOv[w.week]||defaultCat(w);
 const counted=w=>weekCat(w)!=='uit';
 function median(a){ if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; }
 const weekVal=(lt,w,teams)=>{ const ww=lt.w[w.week]; if(!ww) return 0; let t=0; for(const [k,v] of Object.entries(ww)) if(!teams||teams.includes(k)) t+=v; return t; };
-function stats(lt,teams){ const res={}; for(const g of CATS){ const vals=D.weeks.filter(w=>weekCat(w)===g).map(w=>weekVal(lt,w,teams)); const m=median(vals); res[g]={med:m,alloc:m==null?null:m*S.settings.factor,n:vals.length}; } return res; }
-const U=v=>v==null?null:(S.settings.unit==='ruimtes'?v/S.settings.cap:v);
-const fmt=(v,d=1)=>v==null?'–':U(v).toLocaleString('nl-NL',{minimumFractionDigits:d,maximumFractionDigits:d});
-const unitLabel=()=>S.settings.unit==='ruimtes'?'lokalen':'lokaaluren';
+const r1=x=>Math.round(x*10+1e-9)/10;
+const wl=(lt,w,teams)=>r1(weekVal(lt,w,teams)/S.settings.cap); // benodigde lokalen in de week, 1 decimaal
+function stats(lt,teams){ const res={}; for(const g of CATS){ const vals=D.weeks.filter(w=>weekCat(w)===g).map(w=>wl(lt,w,teams)); const m0=median(vals), m=m0==null?null:r1(m0);
+    let a=m==null?null:allocOf(m); if(a!=null&&S.settings.minOne&&a===0&&vals.some(v=>v>0)) a=S.settings.roundStep||0.1; res[g]={med:m,alloc:a,n:vals.length}; } return res; }
+function allocOf(m){ const st=S.settings; const l=m*st.factor; if(!st.roundStep) return r1(l); return r1(Math.max(0,Math.ceil(l/st.roundStep-1e-6))*st.roundStep); }
+const U=v=>v;
+const fmt=(v,d=1)=>v==null?'–':(Math.abs(v)<0.05?0:v).toLocaleString('nl-NL',{minimumFractionDigits:d,maximumFractionDigits:d});
+const unitLabel=()=>'lokalen';
 const fstr=x=>x.toLocaleString('nl-NL',{maximumFractionDigits:3});
 
 /* ============ Instellingen ============ */
-const DEFAULTS={cap:56,target:80,unit:'ruimtes',minPerRE:45,reMax:17};
+const DEFAULTS={cap:56,target:80,minPerRE:45,reMax:17,roundStep:0.1,minOne:true};
+function setField(k,v){ const el=$(k); if(el.type==='checkbox') el.checked=!!v; else el.value=v; }
 function readSettings(){ const st=S.settings;
-  st.cap=+$('cap').value||56; st.target=Math.min(100,Math.max(1,+$('target').value||80)); st.factor=100/st.target; st.unit=$('unit').value; st.minPerRE=+$('minPerRE').value||45; st.reMax=+$('reMax').value||17;
-  $('factorOut').textContent=fstr(st.factor); store.set('settings',{cap:st.cap,target:st.target,unit:st.unit,minPerRE:st.minPerRE,reMax:st.reMax}); }
-function applySettingsObj(o){ const g=Object.assign({},DEFAULTS,o.algemeen||o.settings||{}); for(const k of Object.keys(DEFAULTS)) $(k).value=g[k];
+  st.cap=+$('cap').value||56; st.target=Math.min(100,Math.max(1,+$('target').value||80)); st.factor=100/st.target; st.minOne=$('minOne').checked; st.minPerRE=+$('minPerRE').value||45; st.reMax=+$('reMax').value||17; st.roundStep=Math.max(0,+$('roundStep').value||0);
+  $('factorOut').textContent=fstr(st.factor); store.set('settings',{cap:st.cap,target:st.target,minOne:st.minOne,minPerRE:st.minPerRE,reMax:st.reMax,roundStep:st.roundStep}); }
+function applySettingsObj(o){ const g=Object.assign({},DEFAULTS,o.algemeen||o.settings||{}); for(const k of Object.keys(DEFAULTS)) setField(k,g[k]);
   S.weekOv=o.weekindeling||o.weekcats||{}; S.setOv=o.faciliteittypesets||o.setoverride||{}; store.set('weekcats',S.weekOv); store.set('setov',S.setOv); readSettings(); }
 async function loadSettings(){
   if(!store.has('settings')&&!store.has('weekcats')&&!store.has('setov')){ try{ const r=await fetch('instellingen.json',{cache:'no-store'}); if(r.ok){ applySettingsObj(await r.json()); return; } }catch(e){} }
-  const s=store.get('settings',{}); for(const k of Object.keys(DEFAULTS)) $(k).value=s[k]??DEFAULTS[k];
+  const s=store.get('settings',{}); for(const k of Object.keys(DEFAULTS)) setField(k,s[k]??DEFAULTS[k]);
   S.weekOv=store.get('weekcats',{}); S.setOv=store.get('setov',{}); readSettings(); }
 function exportSettings(){ const o={app:'ruimtebehoefte',versie:1,datum:new Date().toISOString().slice(0,10),algemeen:store.get('settings',{}),weekindeling:S.weekOv,faciliteittypesets:S.setOv};
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'})); a.download='instellingen.json'; a.click(); }
@@ -394,11 +414,14 @@ function renderControle(){
 /* ============ Instellingen: weken en sets ============ */
 function renderKalender(){
   if(!D.weeks.length) return;
-  let h=`<div class="filters" style="justify-content:space-between"><div class="note" style="max-width:900px">Wijs elke week toe aan een groep voor de mediaan. Standaard: x.1–x.7 = lesweken, x.8 en hoger = toetsweken, periode 1–2 = semester 1, periode 3–4 = semester 2. Periode 5 en vakantieweken tellen niet mee. Aangepaste weken zijn vetgedrukt.</div><button class="btn" id="resetWT">Herstel standaardindeling</button></div>`;
-  h+=`<div class="scroll"><table style="width:auto"><thead><tr><th class="l">Week</th><th class="l">Lesweek</th><th>Periode</th><th>Semester</th><th class="l">Groep voor de mediaan</th></tr></thead><tbody>`;
-  for(const w of D.weeks){ const c=weekCat(w), ov=!!S.weekOv[w.week];
-    h+=`<tr class="${ov?'changed':''}"><td class="l">${w.week}</td><td class="l">${esc(w.lesweek)||'<span class="muted">vakantie</span>'}</td><td>${esc(w.periode)}</td><td>${esc(w.semester)}</td><td class="l"><select data-w="${w.week}">${[...CATS,'uit'].map(o=>`<option value="${o}" ${o===c?'selected':''}>${CAT_LABEL[o]}</option>`).join('')}</select></td></tr>`; }
-  $('kalender').innerHTML=h+'</tbody></table></div>'; $('kalender').classList.remove('empty');
+  const cols={}; const colOrder=[]; let cur=null;
+  for(const w of D.weeks){ const pk=w.periode||cur||'?'; if(w.periode) cur=w.periode; if(!cols[pk]){ cols[pk]=[]; colOrder.push(pk); } cols[pk].push(w); }
+  colOrder.sort((x,y)=>(+x||99)-(+y||99));
+  let h=`<div class="filters" style="justify-content:space-between;align-items:flex-start"><div class="note" style="max-width:900px;margin:0">Wijs elke week toe aan een groep voor de mediaan. Standaard: x.1–x.7 = lesweken, x.8 en hoger = toetsweken; periode 1–2 = semester 1, periode 3–4 = semester 2. Periode 5 en vakantieweken tellen niet mee. Aangepaste weken zijn vetgedrukt.</div><button class="btn" id="resetWT">Herstel standaardindeling</button></div>`;
+  h+=`<div class="legend" style="margin:0 0 8px"><span><i class="sw" style="background:#fff;border:1px solid var(--axis)"></i>lesweek</span><span><i class="sw" style="background:var(--band-toets)"></i>toetsweek</span><span><i class="sw" style="background:var(--band-vak)"></i>telt niet mee</span></div>`;
+  h+=`<div class="wkgrid">`+colOrder.map(pk=>`<div class="wkcol"><div class="wkhead">Periode ${esc(pk)}</div>`+cols[pk].map(w=>{ const c=weekCat(w), ov=!!S.weekOv[w.week]; const cls=c==='uit'?'uit':c.endsWith('toets')?'toets':'les';
+      return `<div class="wkrow ${cls} ${ov?'changed':''}"><span class="wk">${w.week}</span><span class="lw">${esc(w.lesweek)||'vak.'}</span><select data-w="${w.week}">${[...CATS,'uit'].map(o=>`<option value="${o}" ${o===c?'selected':''}>${o==='uit'?'Telt niet mee':CAT_SHORT[o]}</option>`).join('')}</select></div>`; }).join('')+`</div>`).join('')+`</div>`;
+  $('kalender').innerHTML=h; $('kalender').classList.remove('empty');
   $('kalender').querySelectorAll('select').forEach(s=>s.onchange=()=>{ const w=D.weeks.find(x=>x.week===s.dataset.w); if(s.value===defaultCat(w)) delete S.weekOv[w.week]; else S.weekOv[w.week]=s.value; store.set('weekcats',S.weekOv); renderKalender(); renderAnalyse(); });
   $('resetWT').onclick=()=>{ S.weekOv={}; store.set('weekcats',{}); renderKalender(); renderAnalyse(); };
 }
@@ -406,6 +429,9 @@ function renderSets(){
   const el=$('setsEdit'); if(!D.setNames.length){ return; }
   const re=v=>v?v.toLocaleString('nl-NL',{maximumFractionDigits:0}):'–';
   let h=`<div class="filters" style="justify-content:space-between"><div class="note" style="max-width:900px">Koppel elke faciliteittypeset aan een faciliteittype en locatie. Kies <b>${EXCL}</b> om een set niet mee te tellen. <b>Specifiek</b> blijft altijd buiten de berekening. De beginwaarden komen uit het setbestand; aangepaste regels zijn vetgedrukt.</div><button class="btn" id="resetSets">Herstel naar setbestand</button></div>`;
+  const groups={}; for(const n of D.setNames){ const m=D.setMap[n]; if(!CALC_TYPES.includes(m.type)||!m.loc) continue; const k=m.loc+' · '+m.type; (groups[k]??={loc:m.loc,type:m.type,sets:[]}).sets.push(n); }
+  const gl=Object.values(groups).sort((a,b)=>LOCS.indexOf(a.loc)-LOCS.indexOf(b.loc)||TYPES.indexOf(a.type)-TYPES.indexOf(b.type));
+  h+=`<details open style="margin-bottom:12px"><summary><b>Zo worden de sets samengevoegd in de analyse</b> (${gl.length} combinaties van locatie en faciliteittype)</summary><div class="rollup" style="margin-top:8px">${gl.map(g=>{ const tot=g.sets.reduce((a,n)=>a+(D.setTotals[n]||0),0); return `<div><b>${esc(g.loc)} · ${esc(g.type)}</b> <span class="muted">${re(tot)} lokaaluren</span><br>${g.sets.map(n=>`${esc(n)}${D.setTotals[n]?'':' <span class="muted">(0)</span>'}`).join('<br>')}</div>`; }).join('')}</div></details>`;
   h+=`<div class="scroll"><table style="width:auto"><thead><tr><th class="l">Faciliteittypeset</th><th class="l">In setbestand</th><th class="l">Faciliteittype</th><th class="l">Locatie</th><th>Lokaaluren in export</th><th class="l">Telt mee</th></tr></thead><tbody>`;
   for(const n of D.setNames){ const m=D.setMap[n], b=D.setBase[n], ch=!!S.setOv[n];
     const counts=CALC_TYPES.includes(m.type)&&LOCS.includes(m.loc);
@@ -437,70 +463,78 @@ function renderTeamChips(){
   box.innerHTML=!sel?`<div class="selbox all">Getoond: <b>alle opleidingen samen</b> (${T.length}). Dit is de ruimtebehoefte van de hele academie.</div>`
     :`<div class="selbox part">Getoond: <b>combinatie van ${sel.length} van de ${T.length} opleidingen</b>: ${sel.map(esc).join(' + ')}.<br><span style="font-size:12px">Mediaan en toewijzing zijn berekend over alleen deze opleidingen samen, niet over de hele academie.</span></div>`;
 }
+function allLocTypes(){ const list=[...D.locTypes]; const have=new Set(list.map(x=>x.loc+'||'+x.type));
+  for(const n of D.setNames){ const m=D.setMap[n]; if(CALC_TYPES.includes(m.type)&&m.loc&&!have.has(m.loc+'||'+m.type)){ have.add(m.loc+'||'+m.type); list.push({loc:m.loc,type:m.type,w:{}}); } }
+  return list.sort((a,b)=>LOCS.indexOf(a.loc)-LOCS.indexOf(b.loc)||TYPES.indexOf(a.type)-TYPES.indexOf(b.type)); }
 function renderAnalyse(){
   if(!D) return; renderTeamChips();
   const box=$('analyse'); const teams=S.view.teams; const per=S.view.per;
-  if(!D.locTypes.length){ box.className='empty'; box.innerHTML=S.kinds.onderwijs?'Er tellen nog geen gegevens mee. Kijk bij Controle en Instellingen → Faciliteittypesets.':'Importeer eerst de bestanden.'; return; }
+  if(!allLocTypes().length){ box.className='empty'; box.innerHTML=S.kinds.onderwijs?'Er tellen nog geen gegevens mee. Kijk bij Controle en Instellingen → Faciliteittypesets.':'Importeer eerst de bestanden.'; return; }
   box.className=''; box.innerHTML='';
   const weeks=per==='jaar'?D.weeks.filter(counted):D.weeks.filter(w=>weekCat(w)===per);
   const cats=per==='jaar'?CATS:[per];
   // samenvattingstabel
-  let t=`<div class="filters" style="justify-content:space-between;margin-top:6px"><div class="note">Mediaan van het aantal ${unitLabel()} per week en toegewezen = mediaan × ${fstr(S.settings.factor)} (streefbezetting ${S.settings.target}%).</div><button class="btn" id="csvA">Download CSV</button></div>`;
+  let t=`<div class="filters" style="justify-content:space-between;margin-top:6px"><div class="note">Mediaan van het aantal ${unitLabel()} per week. Toegewezen = mediaan × ${fstr(S.settings.factor)} (streefbezetting ${S.settings.target}%)${S.settings.roundStep?`, naar boven afgerond op ${fstr(S.settings.roundStep)} lokaal (dagdeel)`:''}.</div><button class="btn" id="csvA">Download CSV</button></div>`;
   t+=`<div class="scroll" style="max-height:none"><table><thead><tr><th class="l">Locatie</th><th class="l">Faciliteittype</th>${cats.map(c=>`<th>${per==='jaar'?CAT_SHORT[c]+' ':''}mediaan</th><th>${per==='jaar'?CAT_SHORT[c]+' ':''}toegewezen</th>${per==='jaar'?'':'<th>weken boven toewijzing</th>'}`).join('')}</tr></thead><tbody>`;
   const rows=[['Locatie','Faciliteittype','Opleidingen',...cats.flatMap(c=>[CAT_LABEL[c]+' mediaan',CAT_LABEL[c]+' toegewezen'])]];
-  for(const lt of D.locTypes){ const st=stats(lt,teams); if(!cats.some(c=>st[c].med)&&!weeks.some(w=>weekVal(lt,w,teams))) continue;
-    const over=weeks.filter(w=>weekVal(lt,w,teams)>st[weekCat(w)].alloc+1e-9).length;
+  const ALT=allLocTypes();
+  for(const lt of ALT){ const st=stats(lt,teams);
+    const over=weeks.filter(w=>wl(lt,w,teams)>st[weekCat(w)].alloc+1e-9).length;
     t+=`<tr><td class="l">${esc(lt.loc)}</td><td class="l">${esc(lt.type)}</td>${cats.map(c=>`<td>${fmt(st[c].med)}</td><td class="alloc">${fmt(st[c].alloc)}</td>${per==='jaar'?'':`<td>${over?`<span class="warn">${over}</span>`:'0'} / ${weeks.length}</td>`}`).join('')}</tr>`;
     rows.push([lt.loc,lt.type,teams?teams.join(' + '):'Alle opleidingen',...cats.flatMap(c=>[num(st[c].med),num(st[c].alloc)])]); }
   const tb=document.createElement('div'); tb.innerHTML=t+'</tbody></table></div>'; box.appendChild(tb);
   $('csvA').onclick=()=>csv(rows,`ruimtebehoefte_${per}${teams?'_selectie':''}.csv`);
   // legenda
   const lg=document.createElement('div'); lg.className='legend';
-  lg.innerHTML=`<span><i class="sw" style="background:var(--s1)"></i>${unitLabel()} per week</span><span><i class="sw" style="background:var(--critical)"></i>boven toewijzing ▲</span><span><i class="ln dash"></i>mediaan</span><span><i class="ln"></i>toegewezen (× ${fstr(S.settings.factor)})</span>${per==='jaar'?'<span><i class="sw" style="background:var(--band-toets)"></i>toetsweken</span>':''}`;
+  lg.innerHTML=`<span><i class="sw" style="background:var(--s1)"></i>${unitLabel()} per week</span><span><i class="sw" style="background:var(--critical)"></i>boven toewijzing ▲</span><span><i class="ln dash"></i>mediaan</span><span><i class="ln"></i>toegewezen (× ${fstr(S.settings.factor)}${S.settings.roundStep?', afgerond per '+fstr(S.settings.roundStep)+' lokaal':''})</span>${per==='jaar'?'<span><i class="sw" style="background:var(--band-toets)"></i>toetsweken</span>':''}`;
   box.appendChild(lg);
   // grafieken per locatie
-  for(const loc of LOCS.concat([...new Set(D.locTypes.map(x=>x.loc))].filter(l=>!LOCS.includes(l)))){
-    const lts=D.locTypes.filter(x=>x.loc===loc&&weeks.some(w=>weekVal(x,w,teams)>0)); if(!lts.length) continue;
+  for(const loc of LOCS){
+    const lts=ALT.filter(x=>x.loc===loc); if(!lts.length) continue;
     const h=document.createElement('h3'); h.className='loc'; h.textContent=loc; box.appendChild(h);
     const grid=document.createElement('div'); grid.className=per==='jaar'?'':'grid'; box.appendChild(grid);
     for(const lt of lts) grid.appendChild(chart(lt,teams,weeks,per));
   }
 }
-const num=v=>v==null?'':U(v).toFixed(2).replace('.',',');
+const num=v=>v==null?'':v.toFixed(1).replace('.',',');
 function csv(rows,name){ const t='﻿'+rows.map(r=>r.map(c=>{c=String(c??'');return /[;"\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(';')).join('\r\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'})); a.download=name; a.click(); }
 
 /* ============ Grafiek (SVG) ============ */
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-function chart(lt,teams,weeks,per){
+function chart(lt,teams,weeks0,per){ let weeks=[...weeks0];
   const wrap=document.createElement('div'); wrap.className='chartwrap';
-  const st=stats(lt,teams); const vals=weeks.map(w=>weekVal(lt,w,teams));
+  const st=stats(lt,teams);
+  if(S.view.sort==='size'){ const ord=[...weeks].map((w,i)=>({w,i,v:wl(lt,w,teams)})); ord.sort((a,b)=>per==='jaar'?(CATS.indexOf(weekCat(a.w))-CATS.indexOf(weekCat(b.w))||b.v-a.v||a.i-b.i):(b.v-a.v||a.i-b.i)); weeks=ord.map(o=>o.w); }
+  const vals=weeks.map(w=>wl(lt,w,teams)); const sorted=S.view.sort==='size';
   const over=weeks.map((w,i)=>vals[i]>st[weekCat(w)].alloc+1e-9);
   const nOver=over.filter(Boolean).length;
   const cats=per==='jaar'?CATS:[per];
-  wrap.innerHTML=`<h4>${esc(lt.type)}${teams?`<span class="tag">${teams.length} opleiding${teams.length>1?'en':''}</span>`:''}</h4><div class="sub">${cats.map(c=>`${per==='jaar'?CAT_SHORT[c]+': ':''}mediaan <b>${fmt(st[c].med)}</b> · toegewezen <b>${fmt(st[c].alloc)}</b>`).join(' &nbsp;|&nbsp; ')} · ${nOver?`<span class="warn">${nOver} van ${weeks.length} weken boven toewijzing</span>`:`alle ${weeks.length} weken binnen toewijzing`}</div>`;
+  wrap.innerHTML=`<h4>${esc(lt.type)}${teams?`<span class="tag">${teams.length} opleiding${teams.length>1?'en':''}</span>`:''}</h4><div class="sub">${cats.map(c=>`${per==='jaar'?CAT_SHORT[c]+': ':''}mediaan <b>${fmt(st[c].med)}</b> · toegewezen <b>${fmt(st[c].alloc)}</b>`).join(' &nbsp;|&nbsp; ')} · ${!vals.some(v=>v>0)?'<span class="muted">geen vraag in deze periode'+(teams?' voor deze opleidingen':'')+'</span>':nOver?`<span class="warn">${nOver} van ${weeks.length} weken boven toewijzing</span>`:`alle ${weeks.length} weken binnen toewijzing`}</div>`;
   const host=document.createElement('div'); wrap.appendChild(host);
   requestAnimationFrame(()=>draw());
   function draw(){
   const W=Math.max(420,host.clientWidth||600), Hh=per==='jaar'?280:240, m={l:44,r:10,t:per==='jaar'?18:10,b:40};
   const iw=W-m.l-m.r, ih=Hh-m.t-m.b, n=weeks.length, bw=iw/Math.max(1,n);
-  const raw=Math.max(0.0001,...vals.map(v=>U(v)),...cats.map(c=>U(st[c].alloc)||0))*1.05;
+  const raw=Math.max(0.5,...vals.map(v=>U(v)),...cats.map(c=>U(st[c].alloc)||0))*1.12;
   const p10=Math.pow(10,Math.floor(Math.log10(raw/4))); const step=[1,2,2.5,5,10].map(x=>x*p10).find(x=>x*5>=raw)||10*p10; const nT=Math.ceil(raw/step); const ymax=nT*step;
   const y=v=>m.t+ih-(U(v)/ymax)*ih;
   let s='';
   if(per==='jaar') weeks.forEach((w,i)=>{ if(weekCat(w).endsWith('toets')) s+=`<rect x="${m.l+i*bw}" y="${m.t}" width="${bw}" height="${ih}" fill="${css('--band-toets')}"/>`; });
   for(let k=0;k<=nT;k++){ const v=step*k, yy=m.t+ih-ih*k/nT; s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${yy}" y2="${yy}" stroke="${k?css('--grid'):css('--axis')}"/><text x="${m.l-6}" y="${yy+4}" text-anchor="end" font-size="11" fill="${css('--text-secondary')}">${v.toLocaleString('nl-NL',{maximumFractionDigits:2})}</text>`; }
-  for(let i=1;i<n;i++) if(weeks[i].periode!==weeks[i-1].periode) s+=`<line x1="${m.l+i*bw}" x2="${m.l+i*bw}" y1="${m.t}" y2="${m.t+ih+28}" stroke="${css('--axis')}"/>`;
+  for(let i=1;i<n;i++) if(sorted?weekCat(weeks[i])!==weekCat(weeks[i-1]):weeks[i].periode!==weeks[i-1].periode) s+=`<line x1="${m.l+i*bw}" x2="${m.l+i*bw}" y1="${m.t}" y2="${m.t+ih+28}" stroke="${css('--axis')}"/>`;
+  let labels='';
   const gap=Math.min(2,bw*0.15), bwi=Math.max(1,bw-gap*2);
   weeks.forEach((w,i)=>{ const x=m.l+i*bw+gap;
     if(vals[i]>0){ const y1=y(vals[i]); s+=barPath(x,y1,bwi,m.t+ih-y1,over[i]?css('--critical'):css('--s1')); }
-    if(over[i]) s+=`<text x="${x+bwi/2}" y="${y(vals[i])-4}" text-anchor="middle" font-size="9" fill="${css('--critical')}">▲</text>`;
+    if(vals[i]>0){ const fs=bw>=26?10:bw>=18?9:8; labels+=`<text stroke="${css('--surface-1')}" stroke-width="3" paint-order="stroke" x="${x+bwi/2}" y="${y(vals[i])-4}" text-anchor="middle" font-size="${fs}" font-weight="${over[i]?700:500}" fill="${over[i]?css('--critical'):css('--text-primary')}">${over[i]?'▲':''}${fmt(vals[i])}</text>`; }
     const show=bw>=24||i%2===0;
     if(show){ s+=`<text x="${m.l+i*bw+bw/2}" y="${m.t+ih+14}" text-anchor="middle" font-size="10" fill="${css('--text-secondary')}">${esc(w.lesweek||'–')}</text><text x="${m.l+i*bw+bw/2}" y="${m.t+ih+26}" text-anchor="middle" font-size="9" fill="${css('--text-muted')}">${w.week.replace('W','w')}</text>`; } });
-  const runs=[]; weeks.forEach((w,i)=>{ const g=weekCat(w); const last=runs[runs.length-1]; if(last&&last.g===g&&last.e===i-1&&w.periode===weeks[i-1].periode) last.e=i; else runs.push({g,b:i,e:i}); });
+  const runs=[]; weeks.forEach((w,i)=>{ const g=weekCat(w); const last=runs[runs.length-1]; if(last&&last.g===g&&last.e===i-1&&(sorted||w.periode===weeks[i-1].periode)) last.e=i; else runs.push({g,b:i,e:i}); });
   for(const r of runs){ const sg=st[r.g]; if(!sg||sg.med==null) continue; const x0=m.l+r.b*bw+1, x1=m.l+(r.e+1)*bw-1;
     s+=`<line x1="${x0}" x2="${x1}" y1="${y(sg.med)}" y2="${y(sg.med)}" stroke="${css('--text-secondary')}" stroke-width="2" stroke-dasharray="5 4"/><line x1="${x0}" x2="${x1}" y1="${y(sg.alloc)}" y2="${y(sg.alloc)}" stroke="${css('--text-primary')}" stroke-width="2"/>`;
     if(per==='jaar'&&x1-x0>40) s+=`<text x="${(x0+x1)/2}" y="${m.t-5}" text-anchor="middle" font-size="10" fill="${css('--text-muted')}">${CAT_SHORT[r.g]}</text>`; }
+  s+=labels;
   weeks.forEach((w,i)=>{ s+=`<rect class="hit" data-i="${i}" x="${m.l+i*bw}" y="${m.t}" width="${bw}" height="${ih}" fill="transparent"/>`; });
   host.innerHTML=`<svg width="${W}" height="${Hh}" style="display:block">${s}</svg>`;
   const tip=$('tip');
@@ -560,7 +594,8 @@ const drop=$('drop'); drop.onclick=()=>$('file').click(); $('file').onchange=e=>
 drop.ondragover=e=>{e.preventDefault();drop.classList.add('over');}; drop.ondragleave=()=>drop.classList.remove('over');
 drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');handleFiles([...e.dataTransfer.files]);};
 $('demo').onclick=loadDemo;
-['target','unit','cap'].forEach(id=>$(id).addEventListener('change',()=>{ readSettings(); if(D) renderAnalyse(); }));
+$('sortSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{ S.view.sort=b.dataset.v; $('sortSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); renderAnalyse(); });
+['target','cap','roundStep','minOne'].forEach(id=>$(id).addEventListener('change',()=>{ readSettings(); if(D) renderAnalyse(); }));
 ['minPerRE','reMax'].forEach(id=>$(id).addEventListener('change',recompute));
 $('expSet').onclick=exportSettings; $('impSetBtn').onclick=()=>$('impSet').click();
 $('impSet').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ applySettingsObj(JSON.parse(await f.text())); $('shareStatus').innerHTML=`<div class="banner ok"><span class="ic">✓</span><div>Instellingen geladen uit ${esc(f.name)}.</div></div>`; recompute(); }catch(err){ $('shareStatus').innerHTML=`<div class="banner err"><span class="ic">✕</span><div>Kon ${esc(f.name)} niet lezen.</div></div>`; } e.target.value=''; };

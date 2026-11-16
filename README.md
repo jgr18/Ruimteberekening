@@ -1,5 +1,7 @@
 # Ruimtebehoefte per faciliteittype en opleiding
 
+Versie 0.2
+
 Webapp die de ruimtebehoefte van de academie berekent uit Xedule-exports:
 per locatie, faciliteittype en periode, voor alle opleidingen samen of voor een combinatie van opleidingen.
 
@@ -23,9 +25,10 @@ niet op een server opgeslagen. In deze repository staan geen roostergegevens.
 - Blokken (RE/minuten): waarden t/m 17 zijn RE (lesuren); hoger zijn minuten (toetsen) en worden gedeeld door 45.
   Waarden als `3/3` of `12/12/12/12/11` worden opgeteld.
 - Lokaaluren per week = RE × aantal lokalen per faciliteittypeset, in elke week waarin het onderwijs gepland is.
-- Benodigde lokalen per week = lokaaluren ÷ beschikbare uren per lokaal (standaard 56).
-- Per groep weken (semester 1/2, les-/toetsweken) wordt de mediaan genomen.
-- Toegewezen = mediaan × (100% ÷ streefbezetting). Bij 80% is dat × 1,25.
+- Benodigde lokalen per week = lokaaluren ÷ beschikbare uren per lokaal (standaard 56), afgerond op 1 decimaal.
+- Per groep weken (semester 1/2, les-/toetsweken) wordt de mediaan genomen (1 decimaal).
+- Toegewezen = mediaan × (100% ÷ streefbezetting), bij 80% is dat × 1,25, naar boven afgerond op 0,1 lokaal (= 1 dagdeel).
+  Is er in een periode wel vraag maar is de mediaan 0, dan wordt minimaal 1 dagdeel toegewezen (instelbaar).
 - Faciliteittype *Specifiek* en sets die *buiten beschouwing* staan tellen niet mee.
 
 ## Gedeelde instellingen
