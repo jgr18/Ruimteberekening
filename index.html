@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ruimtebehoefte – analyse Xedule-export</title>
+<title>Ruimtebehoefte – analyse Xedule-export (v0.7)</title>
 <style>
 :root{
   --surface-0:#f4f3ef; --surface-1:#fcfcfb; --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#7a7972;
@@ -48,6 +48,7 @@ h3.loc{font-size:17px;margin:26px 0 6px;padding-bottom:6px;border-bottom:2px sol
 label.inline{flex-direction:row!important;align-items:center;gap:6px;font-size:13px!important;color:var(--text-primary)!important}
 input[type=number],select{font:inherit;padding:5px 8px;border:1px solid var(--axis);border-radius:6px;background:#fff;color:var(--text-primary)}
 input[type=number]{width:90px}
+input.txt{font:inherit;padding:5px 8px;border:1px solid var(--axis);border-radius:6px;background:#fff;color:var(--text-primary)}
 .filters{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
 th,td{padding:5px 8px;border-bottom:1px solid var(--grid);text-align:right;white-space:nowrap}
@@ -55,6 +56,9 @@ th{font-weight:600;color:var(--text-secondary);font-size:12px;background:var(--s
 td.l,th.l{text-align:left}
 tr.loc td{background:#f3f2ee;font-weight:650;text-align:left}
 td.alloc{font-weight:650}
+table.t2 th.grp{text-align:center;border-bottom:1px solid var(--axis);border-left:1px solid var(--grid);color:var(--text-primary)}
+table.t2 .g0{border-left:1px solid var(--grid)}
+table.t2 thead tr:nth-child(2) th{top:29px}
 tr.changed td:first-child{font-weight:700}
 .muted{color:var(--text-muted)}
 .scroll{overflow:auto;max-height:70vh}
@@ -74,6 +78,24 @@ tr.changed td:first-child{font-weight:700}
 .selbox.part{background:var(--sel);border:2px solid var(--sel-border)}
 .selbox b{font-weight:700}
 .ctl{margin:10px 0}
+.exportbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 0;padding:10px 0 0;border-top:1px solid var(--grid)}
+.exportbar .lab{font-size:12px;color:var(--text-secondary)}
+@media screen{#printArea{position:absolute;left:-30000px;top:0;width:1060px;background:#fff}}
+#printArea .grid{grid-template-columns:1fr 1fr}
+#printArea .pmeta{border:1px solid var(--grid);border-radius:8px;padding:10px 14px;margin:6px 0 12px;display:grid;grid-template-columns:repeat(3,auto);gap:4px 28px;font-size:12px;justify-content:start}
+#printArea .pmeta b{font-weight:600;color:var(--text-secondary);margin-right:6px}
+#printArea h1{font-size:20px;margin:0}
+#printArea h2.per{font-size:16px;margin:4px 0 6px}
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  html,body{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body>*:not(#printArea){display:none!important}
+  #printArea{position:static;width:auto}
+  .pbreak{break-before:page}
+  .chartwrap{break-inside:avoid}
+  h3.loc{break-after:avoid}
+  th{position:static}
+}
 .ctl .lab{font-size:12px;color:var(--text-secondary);margin-bottom:5px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(560px,1fr));gap:4px 24px}
 .chartwrap{position:relative;margin:8px 0 18px;min-width:0}
@@ -93,6 +115,17 @@ ul.checks li{margin:6px 0}
 details summary{cursor:pointer;color:var(--text-secondary);font-size:13px;margin-top:2px}
 .note{font-size:12px;color:var(--text-secondary);margin:6px 0 0}
 select.bad{border-color:var(--critical);background:#fdf3f3}
+.clist{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff}
+.citem{border-bottom:1px solid var(--grid);padding:8px 12px}
+.citem:last-child{border-bottom:none}
+.chead{display:grid;grid-template-columns:22px minmax(260px,1fr) 110px 2fr;gap:10px;align-items:center}
+.cic{font-weight:800;text-align:center}
+.citem.ok .cic{color:var(--good)} .citem.err .cic{color:var(--critical)} .citem.wrn .cic{color:#c98500}
+.ct{font-weight:600}
+.csev{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em}
+.citem.err .cres{color:var(--critical);font-weight:600} .citem.wrn .cres{color:#9a6700;font-weight:600} .citem.ok .cres{color:var(--text-muted)}
+.cbody{padding:4px 0 2px 32px}
+table.ctab{width:auto;margin:6px 0;font-size:13px}
 .wkgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:start}
 .wkcol{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff}
 .wkhead{font-weight:650;font-size:13px;padding:6px 10px;background:#f3f2ee;border-bottom:1px solid var(--grid)}
@@ -110,7 +143,7 @@ select.bad{border-color:var(--critical);background:#fdf3f3}
 </head>
 <body>
 <header>
-  <h1>Ruimtebehoefte per faciliteittype en opleiding <span style="font-size:13px;font-weight:500;color:var(--text-muted);vertical-align:3px">v0.3</span></h1>
+  <h1>Ruimtebehoefte per faciliteittype en opleiding <span style="font-size:13px;font-weight:500;color:var(--text-muted);vertical-align:3px">v0.7 · concept</span></h1>
   <p>Analyse op basis van Xedule-exports. Alle berekeningen gebeuren in je eigen browser: er worden geen gegevens geüpload of opgeslagen op een server.</p>
 </header>
 <main>
@@ -140,6 +173,7 @@ select.bad{border-color:var(--critical);background:#fdf3f3}
   <section class="card tab" id="tab-instellingen">
     <nav class="tabs subtabs" id="stabs" style="margin-top:0">
       <button data-stab="algemeen" class="active">Algemeen</button>
+      <button data-stab="rapport">Rapportgegevens</button>
       <button data-stab="weken">Weekindeling</button>
       <button data-stab="sets">Faciliteittypesets</button>
       <button data-stab="progs">Onderwijsprogramma's</button>
@@ -151,11 +185,19 @@ select.bad{border-color:var(--critical);background:#fdf3f3}
         <label>Streefbezetting (%)<input type="number" id="target" step="1" min="1" max="100" value="80"></label>
         <label>Opslagfactor mediaan → toewijzing<output id="factorOut" style="padding:6px 0;font-weight:650">1,25</output></label>
         <label>Toewijzen per (lokaal)<input type="number" id="roundStep" step="0.05" min="0" value="0.1" title="0,1 = per dagdeel. 0 = niet afronden"></label>
-        <label class="inline" style="align-self:center"><input type="checkbox" id="minOne" checked> minimaal 1 dagdeel toewijzen als er in de periode vraag is</label>
         <label>Minuten per RE (toetsen)<input type="number" id="minPerRE" step="5" min="1" value="45"></label>
         <label>Grens RE / minuten<input type="number" id="reMax" step="1" min="1" value="17" title="Waarden tot en met dit getal zijn RE, daarboven minuten"></label>
       </div>
-      <p class="note">Lokaaluren per week = RE × aantal lokalen per faciliteittypeset. Benodigde lokalen per week = lokaaluren ÷ beschikbare uren per lokaal, afgerond op 1 decimaal. Per groep weken wordt de mediaan genomen (1 decimaal); toegewezen = mediaan × (100% ÷ streefbezetting), naar boven afgerond op het getal bij "Toewijzen per" (0,1 lokaal = één dagdeel; 0 = niet afronden). In de kolom Blokken zijn waarden tot en met de grens RE (lesuren). Hogere waarden zijn minuten (toetsen) en worden gedeeld door het aantal minuten per RE. Waarden als 3/3 of 12/12/12/12/11 worden opgeteld.</p>
+      <p class="note">Lokaaluren per week = RE × aantal lokalen per faciliteittypeset. Benodigde lokalen per week = lokaaluren ÷ beschikbare uren per lokaal, afgerond op 1 decimaal. Per groep weken wordt de mediaan genomen (niet tussentijds afgerond); toe te wijzen = mediaan × (100% ÷ streefbezetting), naar boven afgerond op het getal bij "Toewijzen per" (0,1 lokaal = één dagdeel; 0 = niet afronden). In de kolom Blokken zijn waarden tot en met de grens RE (lesuren). Hogere waarden zijn minuten (toetsen) en worden gedeeld door het aantal minuten per RE. Waarden als 3/3 of 12/12/12/12/11 worden opgeteld.</p>
+    </div>
+    <div class="stab" id="stab-rapport" style="padding-top:14px">
+      <div class="settings">
+        <label>Naam van de academie<input type="text" id="academie" class="txt" placeholder="bijv. Academie Creatieve Technologie" style="width:300px"></label>
+        <label>Jaar van de analyse<input type="text" id="jaar" class="txt" placeholder="bijv. 2026-2027" style="width:140px"></label>
+        <label>Geanalyseerde periode<input type="text" id="anPeriode" class="txt" placeholder="bijv. studiejaar, periode 1 t/m 4" style="width:260px"></label>
+        <label>Datum van de importbestanden<input type="date" id="importDatum" class="txt"></label>
+      </div>
+      <p class="note">Deze gegevens komen bovenaan de Excel- en PDF-export, samen met de datum waarop je de analyse exporteert.</p>
     </div>
     <div class="stab" id="stab-weken" style="padding-top:14px"><div id="kalender" class="empty">Importeer eerst de kalenderweken.</div></div>
     <div class="stab" id="stab-sets" style="padding-top:14px"><div id="setsEdit" class="empty">Importeer eerst de faciliteittypesets en onderwijsregels.</div></div>
@@ -174,10 +216,12 @@ select.bad{border-color:var(--critical);background:#fdf3f3}
     <div class="ctl"><div class="lab">Opleidingen <span class="muted">(klik om een combinatie te kiezen)</span></div><div class="chips" id="teamChips"></div></div>
     <div class="ctl"><div class="lab">Grafieken sorteren op</div><div class="seg" id="sortSeg"><button data-v="week" class="on">Weeknummer</button><button data-v="size">Grootte</button></div></div>
     <div id="selbox"></div>
+    <div class="exportbar"><span class="lab">Exporteren:</span><button class="btn" id="expXlsx">Excel (.xlsx)</button><button class="btn" id="expPdf">PDF – deze periode</button><button class="btn" id="expPdfAll">PDF – alle periodes</button><span id="expNote" class="note" style="margin:0"></span></div>
     <div id="analyse" class="empty">Importeer eerst de bestanden.</div>
   </section>
 </main>
 <div class="tip" id="tip"></div>
+<div id="printArea"></div>
 
 <script>
 /* ============ Minimale XLSX-lezer (zip + XML), geen externe bibliotheken ============ */
@@ -296,11 +340,11 @@ function stdLoc(raw,setName){ const s=lc(raw); for(const l of LOCS) if(s.include
 /* ============ Rekenkern ============ */
 function parseAll(){
   const st=S.settings, K=S.kinds;
-  const out={issues:{noSet:[],unmapped:{},noLoc:{},noTeam:{},badBlok:[],vacation:{},vacList:[],notInCal:{},excl:{},spec:{}},weeks:[],agg:{},teams:[],locTypes:[],setBase:{},setMap:{},setTotals:{},setNames:[],progBase:{},progMap:{},progNames:[],progCount:{},nRows:0};
+  const out={issues:{noSet:[],noWeek:[],unknownSet:{},nonConf:{},setRows:{},unmapped:{},noLoc:{},noTeam:{},badBlok:[],vacation:{},vacList:[],notInCal:{},excl:{},spec:{}},weeks:[],agg:{},teams:[],locTypes:[],setBase:{},setMap:{},setTotals:{},setNames:[],progBase:{},progMap:{},progNames:[],progCount:{},nRows:0};
   // sets: basis uit bestand, daarna aanpassingen
   if(K.sets){ const R=K.sets.rows,h=R[K.sets.h].map(lc); const iS=h.indexOf('faciliteittypeset'),iT=h.indexOf('faciliteittype'),iL=h.indexOf('locatie'),iM=h.indexOf('meenemen');
     for(const r of R.slice(K.sets.h+1)){ const k=norm(r[iS]); if(!k) continue; let t=stdType(r[iT]); const mee=iM<0||lc(r[iM])!=='nee';
-      if(!t||(!mee&&t!=='Specifiek')) t=EXCL; out.setBase[k]={type:t,loc:stdLoc(r[iL],k),raw:norm(r[iT])}; } }
+      const rawT=norm(r[iT]); if(!rawT||(!mee&&t!=='Specifiek')) t=EXCL; out.setBase[k]={type:t,loc:stdLoc(r[iL],k),raw:norm(r[iT])}; } }
   const progMap={};
   if(K.programma){ const R=K.programma.rows,h=R[K.programma.h].map(lc); const iC=h.indexOf('code'),iT=h.indexOf('team');
     for(const r of R.slice(K.programma.h+1)){ const k=norm(r[iC]); if(k&&norm(r[iT])) out.progBase[k]=norm(r[iT]); } }
@@ -323,19 +367,21 @@ function parseAll(){
   const agg={}, teamSet=new Set();
   const add=(loc,type,w,team,v)=>{ const k=loc+'||'+type; (agg[k]??={loc,type,w:{}}); const ww=(agg[k].w[w]??={}); ww[team]=(ww[team]||0)+v; };
   for(let ri=hr+1;ri<R.length;ri++){ const r=R[ri]; const prog=norm(r[iProg]), prod=norm(r[iProd]); if(!prog&&!prod) continue; out.nRows++;
-    const active=weekCols.filter(([i])=>norm(r[i])!=='').map(([,w])=>w); if(!active.length) continue;
+    const team=progMap[prog]||'Onbekend';
+    const active=weekCols.filter(([i])=>norm(r[i])!=='').map(([,w])=>w); if(!active.length){ out.issues.noWeek.push({prod,prog,team}); continue; }
     const b=parseBlokken(r[iBlok],st.minPerRE,st.reMax);
-    if(b.re==null){ out.issues.badBlok.push({prod,prog,val:r[iBlok],err:b.err}); continue; }
-    const team=progMap[prog]||'Onbekend'; if(team==='Onbekend') out.issues.noTeam[prog]=(out.issues.noTeam[prog]||0)+1; teamSet.add(team);
+    if(b.re==null){ out.issues.badBlok.push({prod,prog,team,val:r[iBlok],err:b.err}); continue; }
+    if(team==='Onbekend') out.issues.noTeam[prog]=(out.issues.noTeam[prog]||0)+1; teamSet.add(team);
     const reqs=setCols.map(([i,s])=>[s,Number(String(r[i]??'').replace(',','.'))]).filter(([,q])=>q>0);
-    if(!reqs.length){ out.issues.noSet.push({prod,prog,re:b.re*active.length}); continue; }
+    if(!reqs.length){ out.issues.noSet.push({prod,prog,team,re:b.re*active.length}); continue; }
+    for(const [sn] of reqs) (out.issues.setRows[sn]??=new Set()).add(prod+'||'+prog);
     for(const [sn,q] of reqs) out.setTotals[sn]=(out.setTotals[sn]||0)+b.re*q*active.length;
     for(const w of active){ if(!cal[w].lesweek){ out.issues.vacation[w]=(out.issues.vacation[w]||0)+1; out.issues.vacList.push({w,prod,prog,team}); }
       for(const [sn,q] of reqs){ const m=out.setMap[sn], v=b.re*q;
-        if(!m.type){ out.issues.unmapped[sn]=(out.issues.unmapped[sn]||0)+v; continue; }
+        if(!m.type){ if(out.setBase[sn]) out.issues.nonConf[sn]=(out.issues.nonConf[sn]||0)+v; else out.issues.unknownSet[sn]=(out.issues.unknownSet[sn]||0)+v; continue; }
         if(m.type===EXCL){ out.issues.excl[sn]=(out.issues.excl[sn]||0)+v; continue; }
         if(m.type==='Specifiek'){ out.issues.spec[sn]=(out.issues.spec[sn]||0)+v; continue; }
-        if(!m.loc){ out.issues.noLoc[sn]=(out.issues.noLoc[sn]||0)+v; continue; }
+        if(!m.loc){ out.issues.nonConf[sn]=(out.issues.nonConf[sn]||0)+v; continue; }
         add(m.loc,m.type,w,team,v); } } }
   out.weeks=order.map(w=>cal[w]); out.agg=agg;
   out.teams=[...teamSet].sort((a,b)=>a==='Onbekend'?1:b==='Onbekend'?-1:a.localeCompare(b,'nl'));
@@ -350,20 +396,21 @@ function median(a){ if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), 
 const weekVal=(lt,w,teams)=>{ const ww=lt.w[w.week]; if(!ww) return 0; let t=0; for(const [k,v] of Object.entries(ww)) if(!teams||teams.includes(k)) t+=v; return t; };
 const r1=x=>Math.round(x*10+1e-9)/10;
 const wl=(lt,w,teams)=>r1(weekVal(lt,w,teams)/S.settings.cap); // benodigde lokalen in de week, 1 decimaal
-function stats(lt,teams){ const res={}; for(const g of CATS){ const vals=D.weeks.filter(w=>weekCat(w)===g).map(w=>wl(lt,w,teams)); const m0=median(vals), m=m0==null?null:r1(m0);
-    let a=m==null?null:allocOf(m); if(a!=null&&S.settings.minOne&&a===0&&vals.some(v=>v>0)) a=S.settings.roundStep||0.1; res[g]={med:m,alloc:a,n:vals.length}; } return res; }
+function stats(lt,teams){ const res={}; for(const g of CATS){ const vals=D.weeks.filter(w=>weekCat(w)===g).map(w=>wl(lt,w,teams)); const m0=median(vals), m=m0==null?null:Math.round(m0*100+1e-9)/100;
+    let a=m==null?null:allocOf(m); res[g]={med:m,alloc:a,n:vals.length}; } return res; }
 function allocOf(m){ const st=S.settings; const l=m*st.factor; if(!st.roundStep) return r1(l); return r1(Math.max(0,Math.ceil(l/st.roundStep-1e-6))*st.roundStep); }
 const U=v=>v;
-const fmt=(v,d=1)=>v==null?'–':(Math.abs(v)<0.05?0:v).toLocaleString('nl-NL',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtM=v=>v==null?'–':fmt(v,2);
+const fmt=(v,d=1)=>v==null?'–':(Math.abs(v)<0.005?0:v).toLocaleString('nl-NL',{minimumFractionDigits:d,maximumFractionDigits:d});
 const unitLabel=()=>'lokalen';
 const fstr=x=>x.toLocaleString('nl-NL',{maximumFractionDigits:3});
 
 /* ============ Instellingen ============ */
-const DEFAULTS={cap:56,target:80,minPerRE:45,reMax:17,roundStep:0.1,minOne:true};
+const DEFAULTS={cap:56,target:80,minPerRE:45,reMax:17,roundStep:0.1,academie:'',jaar:'',anPeriode:'',importDatum:''};
 function setField(k,v){ const el=$(k); if(el.type==='checkbox') el.checked=!!v; else el.value=v; }
 function readSettings(){ const st=S.settings;
-  st.cap=+$('cap').value||56; st.target=Math.min(100,Math.max(1,+$('target').value||80)); st.factor=100/st.target; st.minOne=$('minOne').checked; st.minPerRE=+$('minPerRE').value||45; st.reMax=+$('reMax').value||17; st.roundStep=Math.max(0,+$('roundStep').value||0);
-  $('factorOut').textContent=fstr(st.factor); store.set('settings',{cap:st.cap,target:st.target,minOne:st.minOne,minPerRE:st.minPerRE,reMax:st.reMax,roundStep:st.roundStep}); }
+  st.cap=+$('cap').value||56; st.target=Math.min(100,Math.max(1,+$('target').value||80)); st.factor=100/st.target; st.academie=$('academie').value.trim(); st.jaar=$('jaar').value.trim(); st.anPeriode=$('anPeriode').value.trim(); st.importDatum=$('importDatum').value; st.minPerRE=+$('minPerRE').value||45; st.reMax=+$('reMax').value||17; st.roundStep=Math.max(0,+$('roundStep').value||0);
+  $('factorOut').textContent=fstr(st.factor); store.set('settings',{academie:st.academie,jaar:st.jaar,anPeriode:st.anPeriode,importDatum:st.importDatum,cap:st.cap,target:st.target,minPerRE:st.minPerRE,reMax:st.reMax,roundStep:st.roundStep}); }
 function applySettingsObj(o){ const g=Object.assign({},DEFAULTS,o.algemeen||o.settings||{}); for(const k of Object.keys(DEFAULTS)) setField(k,g[k]);
   S.weekOv=o.weekindeling||o.weekcats||{}; S.setOv=o.faciliteittypesets||o.setoverride||{}; S.progOv=o.onderwijsprogrammas||{}; store.set('weekcats',S.weekOv); store.set('setov',S.setOv); store.set('progov',S.progOv); readSettings(); }
 async function loadSettings(){
@@ -380,7 +427,7 @@ function renderFiles(){
   const nIss=D?issueCount():{err:0,warn:0};
   let h='';
   if(missing.length) h+=`<div class="banner err"><span class="ic">!</span><div><b>Er ontbreken nog gegevens.</b> Importeer ook: ${missing.map(k=>KIND_LABEL[k]).join(', ')}. ${!S.kinds.onderwijs?'Zonder onderwijsregels kan er niets berekend worden.':'De analyse is onvolledig zolang deze bestanden ontbreken.'}</div></div>`;
-  else if(nIss.err) h+=`<div class="banner warn"><span class="ic">!</span><div>Alle bestanden zijn geïmporteerd, maar er ${nIss.err===1?'is 1 punt':'zijn '+nIss.err+' punten'} die aandacht nodig ${nIss.err===1?'heeft':'hebben'}. <a href="#" data-goto="controle">Bekijk de controle</a>.</div></div>`;
+  else if(nIss.err||nIss.warn) h+=`<div class="banner warn"><span class="ic">!</span><div>Alle bestanden zijn geïmporteerd. De controle vond ${nIss.err?`${nIss.err} ${nIss.err===1?'fout':'fouten'}`:''}${nIss.err&&nIss.warn?' en ':''}${nIss.warn?`${nIss.warn} ${nIss.warn===1?'waarschuwing':'waarschuwingen'}`:''} in de invoer. <a href="#" data-goto="controle">Bekijk de controle</a>.</div></div>`;
   else h+=`<div class="banner ok"><span class="ic">✓</span><div>Alle bestanden zijn geïmporteerd. <a href="#" data-goto="analyse">Naar de analyse</a>.</div></div>`;
   $('importStatus').innerHTML=h;
   $('topBanner').innerHTML=missing.length&&D?`<div class="banner err" style="margin-top:12px"><span class="ic">!</span><div>Nog niet alle bestanden zijn geïmporteerd (${missing.map(k=>KIND_LABEL[k]).join(', ')}). <a href="#" data-goto="import">Naar Importeren</a></div></div>`:'';
@@ -394,28 +441,42 @@ async function handleFiles(list){
 }
 
 /* ============ Controle ============ */
-function issueCount(){ const I=D.issues; let err=0, warn=0;
-  const has=o=>Object.keys(o).length?1:0; err+=has(I.unmapped)+has(I.noLoc)+has(I.noTeam)+(I.badBlok.length?1:0)+has(I.notInCal)+(Object.keys(KIND_LABEL).some(k=>!S.kinds[k])?1:0);
-  warn+=(I.noSet.length?1:0)+(Object.keys(I.vacation).length?1:0); return {err,warn}; }
+function checks(){
+  const I=D.issues, re=v=>v.toLocaleString('nl-NL',{maximumFractionDigits:1});
+  const grp=list=>{ const g={}; for(const x of list){ const k=x.prod+'||'+x.prog; const o=(g[k]??={...x,n:0,vals:new Set()}); o.n++; if(x.val!=null&&x.val!=='') o.vals.add(String(x.val)); } return Object.values(g).sort((a,b)=>a.prog.localeCompare(b.prog,'nl')||a.prod.localeCompare(b.prod,'nl')); };
+  const rowTable=(rows,extra)=>`<table class="ctab"><thead><tr><th class="l">Onderwijsproduct</th><th class="l">Onderwijsprogramma</th><th class="l">Opleiding</th>${extra?`<th class="l">${extra[0]}</th>`:''}<th>Regels</th></tr></thead><tbody>${rows.map(x=>`<tr><td class="l">${esc(x.prod)}</td><td class="l">${esc(x.prog)}</td><td class="l">${esc(x.team)}</td>${extra?`<td class="l">${extra[1](x)}</td>`:''}<td>${x.n}</td></tr>`).join('')}</tbody></table>`;
+  const setTable=(obj,note)=>`<table class="ctab"><thead><tr><th class="l">Faciliteittypeset</th><th class="l">In setbestand</th><th>Lokaaluren</th><th>Onderwijsproducten</th></tr></thead><tbody>${Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([sn,v])=>`<tr><td class="l">${esc(sn)}</td><td class="l">${D.setBase[sn]?esc(D.setBase[sn].raw||'–'):'<span class="warn">ontbreekt</span>'}</td><td>${re(v)}</td><td>${(I.setRows[sn]||new Set()).size}</td></tr>`).join('')}</tbody></table>${note?`<p class="note">${note}</p>`:''}`;
+  const vacRows=(()=>{ const g={}; for(const x of I.vacList){ const k=x.prod+'||'+x.prog; const o=(g[k]??={...x,weeks:new Set(),n:0}); o.weeks.add(x.w); o.n++; } const ord=D.weeks.map(w=>w.week); return Object.values(g).map(o=>({...o,wk:[...o.weeks].sort((a,b)=>ord.indexOf(a)-ord.indexOf(b)).join(', ')})).sort((a,b)=>a.prog.localeCompare(b.prog,'nl')); })();
+  const missing=Object.keys(KIND_LABEL).filter(k=>!S.kinds[k]);
+  const nc=Object.keys(I.notInCal);
+  const bad=grp(I.badBlok), nw=grp(I.noWeek), ns=grp(I.noSet);
+  return [
+    {id:'files',t:'Alle bestanden geïmporteerd',sev:'err',n:missing.length,res:missing.length?`Ontbreekt: ${missing.map(k=>KIND_LABEL[k]).join(', ')}`:'',det:''},
+    {id:'nonconf',t:'Faciliteit niet conform richtlijn',sev:'err',n:Object.keys(I.nonConf).length,expl:'Faciliteittypesets die niet aan een standaard faciliteittype en locatie gekoppeld zijn. Koppel ze bij Instellingen → Faciliteittypesets.',res:`${Object.keys(I.nonConf).length} sets, ${re(Object.values(I.nonConf).reduce((a,b)=>a+b,0))} lokaaluren tellen niet mee`,det:setTable(I.nonConf)},
+    {id:'unknown',t:'Onbekend faciliteittype',sev:'err',n:Object.keys(I.unknownSet).length,expl:'Faciliteittypesets uit de onderwijsregels die niet in het setbestand staan. Koppel ze bij Instellingen → Faciliteittypesets of vul het setbestand aan.',res:`${Object.keys(I.unknownSet).length} sets, ${re(Object.values(I.unknownSet).reduce((a,b)=>a+b,0))} lokaaluren tellen niet mee`,det:setTable(I.unknownSet)},
+    {id:'re',t:'RE niet berekend',sev:'err',n:bad.length,expl:'De kolom Blokken (RE/minuten) is leeg of onleesbaar, dus het is niet bekend hoeveel onderwijs meegenomen moet worden. Deze regels tellen niet mee.',res:`${I.badBlok.length} regels (${bad.length} onderwijsproducten)`,det:rowTable(bad,['Waarde Blokken',x=>[...x.vals].map(v=>`"${esc(v)}"`).join(', ')||'<span class="muted">leeg</span>'])},
+    {id:'noweek',t:'Geen geldige uitvoerweek',sev:'err',n:nw.length,expl:'Er is bij deze onderwijsregels geen enkele week ingevuld. Ze tellen niet mee.',res:`${I.noWeek.length} regels (${nw.length} onderwijsproducten)`,det:rowTable(nw)},
+    {id:'team',t:'Onderwijsprogramma zonder opleiding',sev:'err',n:Object.keys(I.noTeam).length,expl:'Deze programma\'s tellen mee als "Onbekend". Koppel ze bij Instellingen → Onderwijsprogramma\'s.',res:`${Object.keys(I.noTeam).length} programma's`,det:`<table class="ctab"><thead><tr><th class="l">Onderwijsprogramma</th><th>Regels</th></tr></thead><tbody>${Object.entries(I.noTeam).map(([p,n])=>`<tr><td class="l">${esc(p)}</td><td>${n}</td></tr>`).join('')}</tbody></table>`},
+    {id:'cal',t:'Weken in onderwijsregels staan in de kalender',sev:'err',n:nc.length,res:`Niet in de kalender: ${nc.join(', ')}`,det:''},
+    {id:'noset',t:'Geen faciliteittype',sev:'warn',n:ns.length,expl:'Bij deze onderwijsregels is geen faciliteittypeset ingevuld. Ze tellen niet mee in de ruimtebehoefte.',res:`${I.noSet.length} regels (${ns.length} onderwijsproducten), ${re(I.noSet.reduce((a,b)=>a+b.re,0))} RE`,det:rowTable(ns)},
+    {id:'vac',t:'Week ingevuld buiten periode (vakantie)',sev:'warn',n:vacRows.length,expl:'Onderwijs gepland in een week zonder lesweek. Deze weken tellen niet mee in de mediaan.',res:`${I.vacList.length} keer, ${vacRows.length} onderwijsproducten`,det:rowTable(vacRows,['Vakantieweken',x=>x.wk])},
+  ];
+}
+function issueCount(){ const c=checks(); return {err:c.filter(x=>x.sev==='err'&&x.n).length,warn:c.filter(x=>x.sev==='warn'&&x.n).length}; }
 function renderControle(){
-  const I=D.issues; const li=[]; const re=v=>v.toLocaleString('nl-NL',{maximumFractionDigits:1});
-  const sub=(cls,title,items)=>`<li class="${cls}">${title}${items?`<details><summary>toon details</summary><ul>${items.join('')}</ul></details>`:''}</li>`;
-  const missing=Object.keys(KIND_LABEL).filter(k=>!S.kinds[k]); if(missing.length) li.push(sub('warn',`Nog niet geïmporteerd: ${missing.map(k=>KIND_LABEL[k]).join(', ')}`));
-  const un=Object.entries(I.unmapped); if(un.length) li.push(sub('warn',`${un.length} faciliteittypesets zijn nog niet aan een faciliteittype gekoppeld; ${re(un.reduce((a,b)=>a+b[1],0))} lokaaluren tellen niet mee. Koppel ze bij Instellingen → Faciliteittypesets.`,un.map(([s,v])=>`<li>${esc(s)}: ${re(v)} lokaaluren</li>`)));
-  const nl=Object.entries(I.noLoc); if(nl.length) li.push(sub('warn',`${nl.length} faciliteittypesets hebben geen locatie en tellen niet mee.`,nl.map(([s,v])=>`<li>${esc(s)}: ${re(v)} lokaaluren</li>`)));
-  const nt=Object.entries(I.noTeam); if(nt.length) li.push(sub('warn',`${nt.length} onderwijsprogramma's zijn niet aan een opleiding gekoppeld en tellen mee als "Onbekend". Koppel ze bij Instellingen → Onderwijsprogramma's.`,nt.map(([p,n])=>`<li>${esc(p)} (${n} regels)</li>`)));
-  if(I.badBlok.length) li.push(sub('warn',`${I.badBlok.length} regels hebben een onleesbare waarde in Blokken (RE/minuten) en tellen niet mee.`,I.badBlok.map(x=>`<li>${esc(x.prod)} · ${esc(x.prog)} · "${esc(x.val)}"</li>`)));
-  const nc=Object.keys(I.notInCal); if(nc.length) li.push(sub('warn',`Weken in de onderwijsregels die niet in de kalender staan: ${nc.join(', ')}`));
-  if(I.noSet.length) li.push(sub('',`${I.noSet.length} regels hebben geen faciliteittypeset (${re(I.noSet.reduce((a,b)=>a+b.re,0))} RE, tellen niet mee).`,I.noSet.map(x=>`<li>${esc(x.prod)} · ${esc(x.prog)} · ${re(x.re)} RE</li>`)));
-  if(I.vacList.length){ const g={}; for(const x of I.vacList){ const k=x.prod+'||'+x.prog; const o=(g[k]??={prod:x.prod,prog:x.prog,team:x.team,weeks:new Set(),n:0}); o.weeks.add(x.w); o.n++; }
-    const order=D.weeks.map(w=>w.week); const rows=Object.values(g).sort((a,b)=>a.prog.localeCompare(b.prog,'nl')||a.prod.localeCompare(b.prod,'nl'));
-    li.push(`<li>${I.vacList.length} keer is onderwijs gepland in een vakantieweek (telt niet mee): ${rows.length} combinaties van onderwijsproduct en programma.<details><summary>toon details</summary><table style="width:auto;margin:6px 0"><thead><tr><th class="l">Onderwijsproduct</th><th class="l">Onderwijsprogramma</th><th class="l">Opleiding</th><th class="l">Vakantieweken</th><th>Aantal</th></tr></thead><tbody>${rows.map(x=>`<tr><td class="l">${esc(x.prod)}</td><td class="l">${esc(x.prog)}</td><td class="l">${esc(x.team)}</td><td class="l">${[...x.weeks].sort((a,b)=>order.indexOf(a)-order.indexOf(b)).join(', ')}</td><td>${x.n}</td></tr>`).join('')}</tbody></table></details></li>`); }
-  const sp=Object.entries(I.spec); if(sp.length) li.push(sub('',`Specifieke ruimtes, buiten de berekening: ${re(sp.reduce((a,b)=>a+b[1],0))} lokaaluren uit ${sp.length} sets.`,sp.map(([s,v])=>`<li>${esc(s)}: ${re(v)}</li>`)));
-  const ex=Object.entries(I.excl); if(ex.length) li.push(sub('',`Buiten beschouwing gelaten: ${re(ex.reduce((a,b)=>a+b[1],0))} lokaaluren uit ${ex.length} sets.`,ex.map(([s,v])=>`<li>${esc(s)}: ${re(v)}</li>`)));
-  const c=issueCount(); const openIdx=[...$('controle').querySelectorAll('details')].map(d=>d.open);
-  $('controle').innerHTML=`<div class="banner ${c.err?'warn':'ok'}"><span class="ic">${c.err?'!':'✓'}</span><div>${c.err?`${c.err} ${c.err===1?'punt vraagt':'punten vragen'} aandacht (rood). De overige punten zijn ter informatie.`:'Geen problemen gevonden. De punten hieronder zijn ter informatie.'} ${D.nRows} onderwijsregels gelezen, ${D.teams.length} opleidingen, ${D.locTypes.length} combinaties van locatie en faciliteittype.</div></div><ul class="checks">${li.join('')}</ul>`;
-  $('controle').classList.remove('empty'); $('controle').querySelectorAll('details').forEach((d,i)=>{ if(openIdx[i]) d.open=true; });
-  const b=$('badgeCtl'); b.style.display=c.err?'':'none'; b.textContent=c.err;
+  const I=D.issues; const re=v=>v.toLocaleString('nl-NL',{maximumFractionDigits:1});
+  const C=checks(); const nErr=C.filter(x=>x.sev==='err'&&x.n).length, nWarn=C.filter(x=>x.sev==='warn'&&x.n).length;
+  const openIds=new Set([...$('controle').querySelectorAll('details[open]')].map(d=>d.dataset.id));
+  let h=`<div class="banner ${nErr?'err':nWarn?'warn':'ok'}"><span class="ic">${nErr?'✕':nWarn?'!':'✓'}</span><div>${nErr?`<b>${nErr} ${nErr===1?'fout':'fouten'}</b>`:'Geen fouten'}${nWarn?` en <b>${nWarn} ${nWarn===1?'waarschuwing':'waarschuwingen'}</b>`:''} in de invoer. ${D.nRows} onderwijsregels gelezen, ${D.teams.length} opleidingen.</div></div>`;
+  h+=`<div class="clist">`+C.map(c=>{ const ok=!c.n; const cls=ok?'ok':(c.sev==='err'?'err':'wrn'); const ic=ok?'✓':c.sev==='err'?'✕':'!';
+      return `<div class="citem ${cls}"><div class="chead"><span class="cic">${ic}</span><span class="ct">${c.t}</span><span class="csev">${c.sev==='err'?'fout':'waarschuwing'}</span><span class="cres">${ok?'in orde':esc(c.res)}</span></div>${!ok&&(c.expl||c.det)?`<div class="cbody">${c.expl?`<div class="note" style="margin:0 0 4px">${c.expl}</div>`:''}${c.det?`<details data-id="${c.id}" ${openIds.has(c.id)?'open':''}><summary>toon details</summary>${c.det}</details>`:''}</div>`:''}</div>`; }).join('')+`</div>`;
+  const sp=Object.entries(I.spec), ex=Object.entries(I.excl);
+  h+=`<h2 style="margin-top:18px">Ter informatie</h2><ul class="checks">`;
+  if(sp.length) h+=`<li>Specifieke ruimtes, buiten de berekening: ${re(sp.reduce((a,b)=>a+b[1],0))} lokaaluren uit ${sp.length} sets.<details data-id="spec" ${openIds.has('spec')?'open':''}><summary>toon details</summary><ul>${sp.map(([s,v])=>`<li>${esc(s)}: ${re(v)}</li>`).join('')}</ul></details></li>`;
+  if(ex.length) h+=`<li>Buiten beschouwing gelaten: ${re(ex.reduce((a,b)=>a+b[1],0))} lokaaluren uit ${ex.length} sets.<details data-id="excl" ${openIds.has('excl')?'open':''}><summary>toon details</summary><ul>${ex.map(([s,v])=>`<li>${esc(s)}: ${re(v)}</li>`).join('')}</ul></details></li>`;
+  h+=`</ul>`;
+  $('controle').innerHTML=h; $('controle').classList.remove('empty');
+  const b=$('badgeCtl'); b.style.display=(nErr||nWarn)?'':'none'; b.textContent=nErr||nWarn; b.classList.toggle('w',!nErr&&!!nWarn);
 }
 
 /* ============ Instellingen: weken en sets ============ */
@@ -496,25 +557,25 @@ function renderAnalyse(){
   if(!D) return; renderTeamChips();
   const box=$('analyse'); const teams=S.view.teams; const per=S.view.per;
   if(!allLocTypes().length){ box.className='empty'; box.innerHTML=S.kinds.onderwijs?'Er tellen nog geen gegevens mee. Kijk bij Controle en Instellingen → Faciliteittypesets.':'Importeer eerst de bestanden.'; return; }
-  box.className=''; box.innerHTML='';
+  box.className=''; box.innerHTML=''; buildAnalysis(box,per,teams,false);
+  const st=S.settings; const miss=[!st.academie&&'naam academie',!st.jaar&&'jaar',!st.anPeriode&&'periode',!st.importDatum&&'datum importbestanden'].filter(Boolean);
+  $('expNote').innerHTML=miss.length?`<span class="warn" style="font-weight:500">Rapportgegevens nog niet ingevuld (${miss.join(', ')}). <a href="#" id="toRapport">Invullen</a></span>`:'';
+  const tr=$('toRapport'); if(tr) tr.onclick=e=>{ e.preventDefault(); showTab('instellingen'); document.querySelector('#stabs button[data-stab="rapport"]').click(); };
+}
+function buildAnalysis(box,per,teams,print){
   const weeks=per==='jaar'?D.weeks.filter(counted):D.weeks.filter(w=>weekCat(w)===per);
   const cats=per==='jaar'?CATS:[per];
-  // samenvattingstabel
-  let t=`<div class="filters" style="justify-content:space-between;margin-top:6px"><div class="note">Mediaan van het aantal ${unitLabel()} per week. Toegewezen = mediaan × ${fstr(S.settings.factor)} (streefbezetting ${S.settings.target}%)${S.settings.roundStep?`, naar boven afgerond op ${fstr(S.settings.roundStep)} lokaal (dagdeel)`:''}.</div><button class="btn" id="csvA">Download CSV</button></div>`;
-  t+=`<div class="scroll" style="max-height:none"><table><thead><tr><th class="l">Locatie</th><th class="l">Faciliteittype</th>${cats.map(c=>`<th>${per==='jaar'?CAT_SHORT[c]+' ':''}mediaan</th><th>${per==='jaar'?CAT_SHORT[c]+' ':''}toegewezen</th>${per==='jaar'?'':'<th>weken boven toewijzing</th>'}`).join('')}</tr></thead><tbody>`;
-  const rows=[['Locatie','Faciliteittype','Opleidingen',...cats.flatMap(c=>[CAT_LABEL[c]+' mediaan',CAT_LABEL[c]+' toegewezen'])]];
+  let t=`<div class="note" style="margin:6px 0 4px">Benodigde lokalen per week (1 decimaal). Mediaan per groep weken (2 decimalen). Toe te wijzen = mediaan × ${fstr(S.settings.factor)} (streefbezetting ${S.settings.target}%)${S.settings.roundStep?`, naar boven afgerond op ${fstr(S.settings.roundStep)} lokaal (dagdeel)`:''}.</div>`;
+  const nsub=per==='jaar'?2:3;
+  t+=`<div class="scroll" style="max-height:none"><table class="t2"><thead><tr><th class="l" rowspan="2">Locatie</th><th class="l" rowspan="2">Faciliteittype</th>${cats.map(c=>`<th colspan="${nsub}" class="grp">${CAT_LABEL[c]}</th>`).join('')}</tr><tr>${cats.map(()=>`<th class="g0">mediaan</th><th>toe te wijzen</th>${per==='jaar'?'':'<th>weken boven toewijzing</th>'}`).join('')}</tr></thead><tbody>`;
   const ALT=allLocTypes();
   for(const lt of ALT){ const st=stats(lt,teams);
     const over=weeks.filter(w=>wl(lt,w,teams)>st[weekCat(w)].alloc+1e-9).length;
-    t+=`<tr><td class="l">${esc(lt.loc)}</td><td class="l">${esc(lt.type)}</td>${cats.map(c=>`<td>${fmt(st[c].med)}</td><td class="alloc">${fmt(st[c].alloc)}</td>${per==='jaar'?'':`<td>${over?`<span class="warn">${over}</span>`:'0'} / ${weeks.length}</td>`}`).join('')}</tr>`;
-    rows.push([lt.loc,lt.type,teams?teams.join(' + '):'Alle opleidingen',...cats.flatMap(c=>[num(st[c].med),num(st[c].alloc)])]); }
+    t+=`<tr><td class="l">${esc(lt.loc)}</td><td class="l">${esc(lt.type)}</td>${cats.map(c=>`<td class="g0">${fmtM(st[c].med)}</td><td class="alloc">${fmt(st[c].alloc)}</td>${per==='jaar'?'':`<td>${over?`<span class="warn">${over}</span>`:'0'} / ${weeks.length}</td>`}`).join('')}</tr>`; }
   const tb=document.createElement('div'); tb.innerHTML=t+'</tbody></table></div>'; box.appendChild(tb);
-  $('csvA').onclick=()=>csv(rows,`ruimtebehoefte_${per}${teams?'_selectie':''}.csv`);
-  // legenda
   const lg=document.createElement('div'); lg.className='legend';
-  lg.innerHTML=`<span><i class="sw" style="background:var(--s1)"></i>${unitLabel()} per week</span><span><i class="sw" style="background:var(--critical)"></i>boven toewijzing ▲</span><span><i class="ln dash"></i>mediaan</span><span><i class="ln"></i>toegewezen (× ${fstr(S.settings.factor)}${S.settings.roundStep?', afgerond per '+fstr(S.settings.roundStep)+' lokaal':''})</span>${per==='jaar'?'<span><i class="sw" style="background:var(--band-toets)"></i>toetsweken</span>':''}`;
+  lg.innerHTML=`<span><i class="sw" style="background:var(--s1)"></i>benodigde lokalen per week</span><span><i class="sw" style="background:var(--critical)"></i>boven toewijzing</span><span><i class="ln dash"></i>mediaan</span><span><i class="ln"></i>toe te wijzen</span>${per==='jaar'?'<span><i class="sw" style="background:var(--band-toets)"></i>toetsweken</span>':''}`;
   box.appendChild(lg);
-  // grafieken per locatie
   for(const loc of LOCS){
     const lts=ALT.filter(x=>x.loc===loc); if(!lts.length) continue;
     const h=document.createElement('h3'); h.className='loc'; h.textContent=loc; box.appendChild(h);
@@ -522,25 +583,21 @@ function renderAnalyse(){
     for(const lt of lts) grid.appendChild(chart(lt,teams,weeks,per));
   }
 }
-const num=v=>v==null?'':v.toFixed(1).replace('.',',');
+const num=v=>v==null?'':(Math.abs(v*10-Math.round(v*10))>1e-6?v.toFixed(2):v.toFixed(1)).replace('.',',');
 function csv(rows,name){ const t='﻿'+rows.map(r=>r.map(c=>{c=String(c??'');return /[;"\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(';')).join('\r\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'})); a.download=name; a.click(); }
 
 /* ============ Grafiek (SVG) ============ */
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-function chart(lt,teams,weeks0,per){ let weeks=[...weeks0];
-  const wrap=document.createElement('div'); wrap.className='chartwrap';
-  const st=stats(lt,teams);
+function chartPrep(lt,teams,weeks0,per){ let weeks=[...weeks0]; const st=stats(lt,teams);
   if(S.view.sort==='size'){ const ord=[...weeks].map((w,i)=>({w,i,v:wl(lt,w,teams)})); ord.sort((a,b)=>per==='jaar'?(CATS.indexOf(weekCat(a.w))-CATS.indexOf(weekCat(b.w))||b.v-a.v||a.i-b.i):(b.v-a.v||a.i-b.i)); weeks=ord.map(o=>o.w); }
-  const vals=weeks.map(w=>wl(lt,w,teams)); const sorted=S.view.sort==='size';
-  const over=weeks.map((w,i)=>vals[i]>st[weekCat(w)].alloc+1e-9);
-  const nOver=over.filter(Boolean).length;
-  const cats=per==='jaar'?CATS:[per];
-  wrap.innerHTML=`<h4>${esc(lt.type)}${teams?`<span class="tag">${teams.length} opleiding${teams.length>1?'en':''}</span>`:''}</h4><div class="sub">${cats.map(c=>`${per==='jaar'?CAT_SHORT[c]+': ':''}mediaan <b>${fmt(st[c].med)}</b> · toegewezen <b>${fmt(st[c].alloc)}</b>`).join(' &nbsp;|&nbsp; ')} · ${!vals.some(v=>v>0)?'<span class="muted">geen vraag in deze periode'+(teams?' voor deze opleidingen':'')+'</span>':nOver?`<span class="warn">${nOver} van ${weeks.length} weken boven toewijzing</span>`:`alle ${weeks.length} weken binnen toewijzing`}</div>`;
-  const host=document.createElement('div'); wrap.appendChild(host);
-  requestAnimationFrame(()=>draw());
-  function draw(){
-  const W=Math.max(420,host.clientWidth||600), Hh=per==='jaar'?280:240, m={l:44,r:10,t:per==='jaar'?18:10,b:40};
+  const vals=weeks.map(w=>wl(lt,w,teams)); const over=weeks.map((w,i)=>vals[i]>st[weekCat(w)].alloc+1e-9);
+  return {lt,teams,weeks,per,st,vals,over,sorted:S.view.sort==='size',cats:per==='jaar'?CATS:[per],nOver:over.filter(Boolean).length}; }
+function chartSubText(c){ const {st,per,cats,vals,nOver,weeks,teams}=c;
+  return {html:`${per==='jaar'?cats.map(x=>`${CAT_SHORT[x]}: M ${fmtM(st[x].med)} · T <b>${fmt(st[x].alloc)}</b>`).join(' &nbsp;|&nbsp; ')+' · ':''}${!vals.some(v=>v>0)?'<span class="muted">geen vraag in deze periode'+(teams?' voor deze opleidingen':'')+'</span>':nOver?`<span class="warn">${nOver} van ${weeks.length} weken boven toewijzing</span>`:`alle ${weeks.length} weken binnen toewijzing`}`,
+    text:`${per==='jaar'?cats.map(x=>`${CAT_SHORT[x]}: M ${fmtM(st[x].med)} · T ${fmt(st[x].alloc)}`).join('  |  ')+' · ':''}${!vals.some(v=>v>0)?'geen vraag in deze periode':nOver?`${nOver} van ${weeks.length} weken boven toewijzing`:`alle ${weeks.length} weken binnen toewijzing`}`,warn:nOver>0}; }
+function chartSvgBody(c,W){ const {lt,teams,weeks,per,st,vals,over,sorted,cats}=c;
+  const Hh=per==='jaar'?280:240, m={l:44,r:per==='jaar'?12:96,t:per==='jaar'?18:10,b:40};
   const iw=W-m.l-m.r, ih=Hh-m.t-m.b, n=weeks.length, bw=iw/Math.max(1,n);
   const raw=Math.max(0.5,...vals.map(v=>U(v)),...cats.map(c=>U(st[c].alloc)||0))*1.12;
   const p10=Math.pow(10,Math.floor(Math.log10(raw/4))); const step=[1,2,2.5,5,10].map(x=>x*p10).find(x=>x*5>=raw)||10*p10; const nT=Math.ceil(raw/step); const ymax=nT*step;
@@ -549,23 +606,40 @@ function chart(lt,teams,weeks0,per){ let weeks=[...weeks0];
   if(per==='jaar') weeks.forEach((w,i)=>{ if(weekCat(w).endsWith('toets')) s+=`<rect x="${m.l+i*bw}" y="${m.t}" width="${bw}" height="${ih}" fill="${css('--band-toets')}"/>`; });
   for(let k=0;k<=nT;k++){ const v=step*k, yy=m.t+ih-ih*k/nT; s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${yy}" y2="${yy}" stroke="${k?css('--grid'):css('--axis')}"/><text x="${m.l-6}" y="${yy+4}" text-anchor="end" font-size="11" fill="${css('--text-secondary')}">${v.toLocaleString('nl-NL',{maximumFractionDigits:2})}</text>`; }
   for(let i=1;i<n;i++) if(sorted?weekCat(weeks[i])!==weekCat(weeks[i-1]):weeks[i].periode!==weeks[i-1].periode) s+=`<line x1="${m.l+i*bw}" x2="${m.l+i*bw}" y1="${m.t}" y2="${m.t+ih+28}" stroke="${css('--axis')}"/>`;
-  let labels='';
+  let labels='', lineLbl='';
   const gap=Math.min(2,bw*0.15), bwi=Math.max(1,bw-gap*2);
   weeks.forEach((w,i)=>{ const x=m.l+i*bw+gap;
     if(vals[i]>0){ const y1=y(vals[i]); s+=barPath(x,y1,bwi,m.t+ih-y1,over[i]?css('--critical'):css('--s1')); }
-    if(vals[i]>0){ const fs=bw>=26?10:bw>=18?9:8; labels+=`<text stroke="${css('--surface-1')}" stroke-width="3" paint-order="stroke" x="${x+bwi/2}" y="${y(vals[i])-4}" text-anchor="middle" font-size="${fs}" font-weight="${over[i]?700:500}" fill="${over[i]?css('--critical'):css('--text-primary')}">${over[i]?'▲':''}${fmt(vals[i])}</text>`; }
+    if(vals[i]>0){ const fs=bw>=26?10:bw>=18?9:8; labels+=`<text stroke="${css('--surface-1')}" stroke-width="3" paint-order="stroke" x="${x+bwi/2}" y="${y(vals[i])-4}" text-anchor="middle" font-size="${fs}" font-weight="${over[i]?700:500}" fill="${over[i]?css('--critical'):css('--text-primary')}">${fmt(vals[i])}</text>`; }
     const show=bw>=24||i%2===0;
     if(show){ s+=`<text x="${m.l+i*bw+bw/2}" y="${m.t+ih+14}" text-anchor="middle" font-size="10" fill="${css('--text-secondary')}">${esc(w.lesweek||'–')}</text><text x="${m.l+i*bw+bw/2}" y="${m.t+ih+26}" text-anchor="middle" font-size="9" fill="${css('--text-muted')}">${w.week.replace('W','w')}</text>`; } });
   const runs=[]; weeks.forEach((w,i)=>{ const g=weekCat(w); const last=runs[runs.length-1]; if(last&&last.g===g&&last.e===i-1&&(sorted||w.periode===weeks[i-1].periode)) last.e=i; else runs.push({g,b:i,e:i}); });
   for(const r of runs){ const sg=st[r.g]; if(!sg||sg.med==null) continue; const x0=m.l+r.b*bw+1, x1=m.l+(r.e+1)*bw-1;
     s+=`<line x1="${x0}" x2="${x1}" y1="${y(sg.med)}" y2="${y(sg.med)}" stroke="${css('--text-secondary')}" stroke-width="2" stroke-dasharray="5 4"/><line x1="${x0}" x2="${x1}" y1="${y(sg.alloc)}" y2="${y(sg.alloc)}" stroke="${css('--text-primary')}" stroke-width="2"/>`;
     if(per==='jaar'&&x1-x0>40) s+=`<text x="${(x0+x1)/2}" y="${m.t-5}" text-anchor="middle" font-size="10" fill="${css('--text-muted')}">${CAT_SHORT[r.g]}</text>`; }
-  s+=labels;
+  // waarden van mediaan en toewijzing rechts naast de lijn
+  const halo=`stroke="${css('--surface-1')}" stroke-width="3" paint-order="stroke"`;
+  if(per!=='jaar'){ const sg=st[per]; if(sg&&sg.med!=null){ let ym=y(sg.med), ya=y(sg.alloc); if(Math.abs(ym-ya)<24){ const mid=(ym+ya)/2; ya=mid-12; ym=mid+12; }
+      const xr=W-m.r+6;
+      lineLbl+=`<text x="${xr}" y="${ya-1}" font-size="10" fill="${css('--text-secondary')}">toe te wijzen</text><text x="${xr}" y="${ya+11}" font-size="12" font-weight="700" fill="${css('--text-primary')}">${fmt(sg.alloc)}</text>`;
+      lineLbl+=`<text x="${xr}" y="${ym-1}" font-size="10" fill="${css('--text-secondary')}">mediaan</text><text x="${xr}" y="${ym+11}" font-size="12" font-weight="600" fill="${css('--text-secondary')}">${fmtM(sg.med)}</text>`; } }
+  else { const last={}; runs.forEach(r=>last[r.g]=r); for(const r of Object.values(last)){ const sg=st[r.g]; if(!sg||sg.med==null) continue; const x1=m.l+(r.e+1)*bw-3;
+      lineLbl+=`<text ${halo} x="${x1}" y="${y(sg.alloc)-4}" text-anchor="end" font-size="10" font-weight="700" fill="${css('--text-primary')}">T ${fmt(sg.alloc)}</text><text ${halo} x="${x1}" y="${y(sg.med)+12}" text-anchor="end" font-size="10" fill="${css('--text-secondary')}">M ${fmtM(sg.med)}</text>`; } }
+  s+=labels+lineLbl;
+  return {s,Hh,m,bw,ih}; }
+function chart(lt,teams,weeks0,per){
+  const c=chartPrep(lt,teams,weeks0,per); const {weeks,st,vals}=c;
+  const wrap=document.createElement('div'); wrap.className='chartwrap';
+  wrap.innerHTML=`<h4>${esc(lt.type)}${teams?`<span class="tag">${teams.length} opleiding${teams.length>1?'en':''}</span>`:''}</h4><div class="sub">${chartSubText(c).html}</div>`;
+  const host=document.createElement('div'); wrap.appendChild(host);
+  requestAnimationFrame(()=>draw());
+  function draw(){
+  const W=Math.max(420,host.clientWidth||600); const r0=chartSvgBody(c,W); let s=r0.s; const {Hh,m,bw,ih}=r0;
   weeks.forEach((w,i)=>{ s+=`<rect class="hit" data-i="${i}" x="${m.l+i*bw}" y="${m.t}" width="${bw}" height="${ih}" fill="transparent"/>`; });
   host.innerHTML=`<svg width="${W}" height="${Hh}" style="display:block">${s}</svg>`;
   const tip=$('tip');
   host.querySelectorAll('rect.hit').forEach(r=>{ r.onmousemove=e=>{ const i=+r.dataset.i, w=weeks[i], sg=st[weekCat(w)], diff=vals[i]-sg.alloc;
-      tip.innerHTML=`<b>Lesweek ${esc(w.lesweek)} · ${w.week}</b><div class="muted">${CAT_LABEL[weekCat(w)]}</div><table><tr><td>Benodigd</td><td style="text-align:right"><b>${fmt(vals[i])}</b> ${unitLabel()}</td></tr><tr><td>Mediaan</td><td style="text-align:right">${fmt(sg.med)}</td></tr><tr><td>Toegewezen</td><td style="text-align:right">${fmt(sg.alloc)}</td></tr><tr><td>Verschil</td><td style="text-align:right" class="${diff>0?'warn':''}">${diff>0?'+':''}${fmt(diff)}</td></tr></table>`;
+      tip.innerHTML=`<b>Lesweek ${esc(w.lesweek)} · ${w.week}</b><div class="muted">${CAT_LABEL[weekCat(w)]}</div><table><tr><td>Benodigd</td><td style="text-align:right"><b>${fmt(vals[i])}</b> ${unitLabel()}</td></tr><tr><td>Mediaan</td><td style="text-align:right">${fmtM(sg.med)}</td></tr><tr><td>Toe te wijzen</td><td style="text-align:right">${fmt(sg.alloc)}</td></tr><tr><td>Verschil</td><td style="text-align:right" class="${diff>0?'warn':''}">${diff>0?'+':''}${fmt(diff)}</td></tr></table>`;
       tip.style.display='block'; tip.style.left=Math.min(e.clientX+14,window.innerWidth-tip.offsetWidth-8)+'px'; tip.style.top=(e.clientY+14)+'px'; r.setAttribute('fill','rgba(11,11,11,0.05)'); };
     r.onmouseleave=()=>{ tip.style.display='none'; r.setAttribute('fill','transparent'); }; });
   }
@@ -608,6 +682,130 @@ function loadDemo(){
 }
 
 
+/* ============ Export: rapportgegevens ============ */
+const APP_VERSION='0.7 (concept)';
+const dNL=iso=>{ if(!iso) return ''; const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}-${m[2]}-${m[1]}`:iso; };
+const todayNL=()=>new Date().toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit',year:'numeric'}).replace(/\//g,'-');
+function reportMeta(teams){ const st=S.settings; return [
+  ['Academie',st.academie||'–'],['Jaar van de analyse',st.jaar||'–'],['Geanalyseerde periode',st.anPeriode||'–'],
+  ['Datum importbestanden',dNL(st.importDatum)||'–'],['Datum analyse',todayNL()],
+  ['Opleidingen',teams?`Selectie (${teams.length} van ${D.teams.length}): ${teams.join(' + ')}`:`Alle opleidingen (${D.teams.length})`]]; }
+function paramMeta(){ const st=S.settings; return [['Beschikbare uren per lokaal per week',st.cap],['Streefbezetting',st.target+'%'],['Opslagfactor',fstr(st.factor)],['Toewijzen per (lokaal)',st.roundStep?fstr(st.roundStep):'niet afronden'],['Versie app',APP_VERSION]]; }
+const fileBase=()=>{ const st=S.settings; return ['Ruimtebehoefte',st.academie,st.jaar].filter(Boolean).join('_').replace(/[\\\/:*?"<>|]+/g,'').replace(/\s+/g,'_'); };
+
+/* ============ Export: Excel (eigen xlsx-schrijver) ============ */
+const CRC_T=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u8){ let c=0xFFFFFFFF; for(let i=0;i<u8.length;i++) c=CRC_T[(c^u8[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function zipStore(files){ const enc=new TextEncoder(); const parts=[], central=[]; let off=0;
+  for(const f of files){ const name=enc.encode(f.name), data=typeof f.data==='string'?enc.encode(f.data):f.data, crc=crc32(data);
+    const lh=new DataView(new ArrayBuffer(30)); lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(8,0,true); lh.setUint32(14,crc,true); lh.setUint32(18,data.length,true); lh.setUint32(22,data.length,true); lh.setUint16(26,name.length,true);
+    parts.push(new Uint8Array(lh.buffer),name,data);
+    const ch=new DataView(new ArrayBuffer(46)); ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0x0800,true); ch.setUint32(16,crc,true); ch.setUint32(20,data.length,true); ch.setUint32(24,data.length,true); ch.setUint16(28,name.length,true); ch.setUint32(42,off,true);
+    central.push(new Uint8Array(ch.buffer),name); off+=30+name.length+data.length; }
+  const csize=central.reduce((a,b)=>a+b.length,0); const e=new DataView(new ArrayBuffer(22)); e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,csize,true); e.setUint32(16,off,true);
+  return new Blob([...parts,...central,new Uint8Array(e.buffer)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); }
+const xe=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'');
+const colL=i=>{ let s=''; i++; while(i){ const m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; };
+/* stijlen: 0 normaal · 1 vet · 2 getal 0,0 · 3 getal 0,00 · 4 titel · 5 kop (vet, grijs vlak) · 6 vet getal 0,0 */
+const ST={b:1,n1:2,n2:3,title:4,head:5,n1b:6,headC:7};
+function sheetXml(rows,widths,freezeRow,merges,drawing,heights){
+  const out=rows.map((r,ri)=>`<row r="${ri+1}"${heights&&heights[ri]?` ht="${heights[ri]}" customHeight="1"`:''}>`+(r||[]).map((c,ci)=>{ if(c==null||c==='') return ''; const ref=colL(ci)+(ri+1); const o=(typeof c==='object')?c:{v:c};
+      const st=o.s?` s="${o.s}"`:''; if(typeof o.v==='number'&&isFinite(o.v)) return `<c r="${ref}"${st}><v>${o.v}</v></c>`; return `<c r="${ref}" t="inlineStr"${st}><is><t xml:space="preserve">${xe(o.v)}</t></is></c>`; }).join('')+`</row>`).join('');
+  const pane=freezeRow?`<sheetViews><sheetView workbookViewId="0"><pane ySplit="${freezeRow}" topLeftCell="A${freezeRow+1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`:'';
+  const cols=widths&&widths.length?`<cols>${widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols>`:'';
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${pane}<sheetFormatPr defaultRowHeight="15" customHeight="1"/>${cols}<sheetData>${out}</sheetData>${merges&&merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:''}${drawing?'<drawing r:id="rId1"/>':''}</worksheet>`; }
+function buildXlsx(sheets){
+  const ns='http://schemas.openxmlformats.org/'; const files=[];
+  files.push({name:'[Content_Types].xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="${ns}package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}${sheets.map((sh,i)=>sh.images&&sh.images.length?`<Override PartName="/xl/drawings/drawing${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>`:'').join('')}</Types>`});
+  files.push({name:'_rels/.rels',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${ns}package/2006/relationships"><Relationship Id="rId1" Type="${ns}officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`});
+  files.push({name:'xl/workbook.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${ns}spreadsheetml/2006/main" xmlns:r="${ns}officeDocument/2006/relationships"><sheets>${sheets.map((sh,i)=>`<sheet name="${xe(sh.name.slice(0,31))}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`});
+  files.push({name:'xl/_rels/workbook.xml.rels',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${ns}package/2006/relationships">${sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="${ns}officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length+1}" Type="${ns}officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`});
+  files.push({name:'xl/styles.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="${ns}spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="0.0"/><numFmt numFmtId="165" formatCode="0.00"/></numFmts><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="14"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEEEDE8"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`});
+  let imgNo=0; const E=9525;
+  sheets.forEach((sh,i)=>{ const hasImg=!!(sh.images&&sh.images.length);
+    files.push({name:`xl/worksheets/sheet${i+1}.xml`,data:sheetXml(sh.rows,sh.widths,sh.freeze,sh.merges,hasImg,sh.heights)});
+    if(!hasImg) return;
+    files.push({name:`xl/worksheets/_rels/sheet${i+1}.xml.rels`,data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${ns}package/2006/relationships"><Relationship Id="rId1" Type="${ns}officeDocument/2006/relationships/drawing" Target="../drawings/drawing${i+1}.xml"/></Relationships>`});
+    let anchors='', rels='';
+    sh.images.forEach((im,k)=>{ imgNo++; files.push({name:`xl/media/image${imgNo}.png`,data:im.png});
+      rels+=`<Relationship Id="rId${k+1}" Type="${ns}officeDocument/2006/relationships/image" Target="../media/image${imgNo}.png"/>`;
+      anchors+=`<xdr:oneCellAnchor><xdr:from><xdr:col>${im.col}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${im.row}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="${Math.round(im.w*E)}" cy="${Math.round(im.h*E)}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${k+2}" name="${xe(im.name||('Grafiek '+(k+1)))}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${k+1}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${Math.round(im.w*E)}" cy="${Math.round(im.h*E)}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`; });
+    files.push({name:`xl/drawings/drawing${i+1}.xml`,data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="${ns}drawingml/2006/spreadsheetDrawing" xmlns:a="${ns}drawingml/2006/main" xmlns:r="${ns}officeDocument/2006/relationships">${anchors}</xdr:wsDr>`});
+    files.push({name:`xl/drawings/_rels/drawing${i+1}.xml.rels`,data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${ns}package/2006/relationships">${rels}</Relationships>`}); });
+  return zipStore(files); }
+async function svgToPng(svg,W,H,scale){ const img=new Image(); img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg); await img.decode();
+  const cv=document.createElement('canvas'); cv.width=Math.round(W*scale); cv.height=Math.round(H*scale); const g=cv.getContext('2d'); g.fillStyle='#ffffff'; g.fillRect(0,0,cv.width,cv.height); g.scale(scale,scale); g.drawImage(img,0,0,W,H);
+  const blob=await new Promise(r=>cv.toBlob(r,'image/png')); return new Uint8Array(await blob.arrayBuffer()); }
+async function chartPng(lt,teams,weeks,per,W){ const c=chartPrep(lt,teams,weeks,per); const r=chartSvgBody(c,W); const top=42; const H=r.Hh+top; const sub=chartSubText(c);
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" font-family="Segoe UI, system-ui, -apple-system, Roboto, Arial, sans-serif"><rect width="${W}" height="${H}" fill="#fff"/><text x="2" y="16" font-size="14" font-weight="700" fill="#0b0b0b">${esc(lt.loc)} · ${esc(lt.type)}${teams?` (${teams.length} opleiding${teams.length>1?'en':''})`:''}</text><text x="2" y="33" font-size="11" fill="${sub.warn?'#d03b3b':'#52514e'}">${esc(sub.text)}</text><g transform="translate(0,${top})">${r.s}</g></svg>`;
+  return {png:await svgToPng(svg,W,H,2),w:W,h:H}; }
+async function chartSheet(name,per,teams){ const st=S.settings; const ALT=allLocTypes();
+  const weeks=per==='jaar'?D.weeks.filter(counted):D.weeks.filter(w=>weekCat(w)===per);
+  const rows=[[{v:`${per==='jaar'?'Heel studiejaar':CAT_LABEL[per]} – ruimtebehoefte${st.academie?' '+st.academie:''}`,s:ST.title}],[`Opleidingen: ${teams?teams.join(' + '):'alle opleidingen'} · Datum analyse: ${todayNL()} · Benodigde lokalen per week, mediaan (M) en toe te wijzen (T)`]];
+  const images=[]; let row=3; const RH=20; const heights={0:24}; const W=per==='jaar'?1240:600; const perRow=per==='jaar'?1:2;
+  for(const loc of LOCS){ const lts=ALT.filter(x=>x.loc===loc); if(!lts.length) continue;
+    rows[row]=[{v:loc,s:ST.title}]; heights[row]=24; row+=1; let k=0, maxH=0;
+    for(const lt of lts){ const im=await chartPng(lt,teams,weeks,per,W); im.col=(k%perRow)*10; im.row=row; im.name=`${loc} ${lt.type}`; images.push(im); maxH=Math.max(maxH,im.h); k++;
+      if(k%perRow===0){ row+=Math.ceil(maxH/RH)+1; maxH=0; } }
+    if(k%perRow!==0) row+=Math.ceil(maxH/RH)+1; row+=1; }
+  for(let i=0;i<row;i++) if(!rows[i]) rows[i]=[];
+  return {name,rows,widths:Array(20).fill(9.14),images,heights}; }
+async function exportXlsx(){ const btn=$('expXlsx'); const lbl=btn.textContent; btn.textContent='Bezig met Excel…'; btn.disabled=true;
+  try{ await exportXlsxInner(); }catch(e){ console.error(e); alert('Excel-export mislukt: '+e.message); } finally{ btn.textContent=lbl; btn.disabled=false; } }
+async function exportXlsxInner(){
+  if(!D||!allLocTypes().length){ alert('Er is nog niets om te exporteren.'); return; }
+  readSettings(); const teams=S.view.teams; const ALT=allLocTypes(); const st=S.settings;
+  const title=[{v:`Ruimtebehoefte${st.academie?' – '+st.academie:''}${st.jaar?' – '+st.jaar:''}`,s:ST.title}];
+  const sub=[`Datum analyse: ${todayNL()} · Opleidingen: ${teams?teams.join(' + '):'alle opleidingen'}`];
+  const H=a=>a.map(v=>({v,s:ST.head}));
+  const n1=v=>v==null?'':{v:Math.round(v*10)/10,s:ST.n1}, n1b=v=>v==null?'':{v:Math.round(v*10)/10,s:ST.n1b}, n2=v=>v==null?'':{v:Math.round(v*100)/100,s:ST.n2};
+  // 1 Gegevens
+  const g=[title,[],...reportMeta(teams).map(([k,v])=>[{v:k,s:ST.b},v]),[],[{v:'Rekenparameters',s:ST.b}],...paramMeta().map(([k,v])=>[k,v]),[],
+    [{v:'Rekenregel',s:ST.b}],['Benodigde lokalen per week = lokaaluren ÷ beschikbare uren per lokaal, afgerond op 1 decimaal.'],['Mediaan per groep weken, afgerond op 2 decimalen.'],[`Toe te wijzen = mediaan × ${fstr(st.factor)}, naar boven afgerond op ${st.roundStep?fstr(st.roundStep):'–'} lokaal (dagdeel).`],[],
+    [{v:'Weekindeling',s:ST.b}],...CATS.map(c=>[CAT_LABEL[c],D.weeks.filter(w=>weekCat(w)===c).map(w=>w.lesweek||w.week).join(', ')])];
+  // 2 Toewijzing
+  const HC=v=>({v,s:ST.headC});
+  const twoLevel=(fixed,sub)=>{ const r1=[...fixed.map(H1=>HC(H1))], r2=fixed.map(()=>({v:'',s:ST.headC})), mg=[]; fixed.forEach((_,i)=>mg.push(`${colL(i)}4:${colL(i)}5`));
+    CATS.forEach((c,ci)=>{ const start=fixed.length+ci*sub.length; r1[start]=HC(CAT_LABEL[c]); for(let k=1;k<sub.length;k++) r1[start+k]={v:'',s:ST.headC}; sub.forEach((x,k)=>r2[start+k]=HC(x)); mg.push(`${colL(start)}4:${colL(start+sub.length-1)}4`); });
+    return {r1,r2,mg}; };
+  const twH=twoLevel(['Locatie','Faciliteittype'],['mediaan','toe te wijzen','weken boven toewijzing']);
+  const tw=[title,sub,[],twH.r1,twH.r2];
+  for(const lt of ALT){ const s2=stats(lt,teams); tw.push([lt.loc,lt.type,...CATS.flatMap(c=>{ const wk=D.weeks.filter(w=>weekCat(w)===c); return [n2(s2[c].med),n1b(s2[c].alloc),`${wk.filter(w=>wl(lt,w,teams)>s2[c].alloc+1e-9).length} / ${wk.length}`]; })]); }
+  // 3 Per opleiding
+  const poH=twoLevel(['Locatie','Faciliteittype','Opleiding'],['mediaan','toe te wijzen']);
+  const po=[title,sub,[],poH.r1,poH.r2];
+  for(const lt of ALT) for(const t of (teams||D.teams)){ if(!D.weeks.some(w=>counted(w)&&weekVal(lt,w,[t])>0)) continue; const s3=stats(lt,[t]); po.push([lt.loc,lt.type,t,...CATS.flatMap(c=>[n2(s3[c].med),n1b(s3[c].alloc)])]); }
+  // 4 Per week
+  const pw=[title,sub,[],H(['Locatie','Faciliteittype','Kalenderweek','Lesweek','Periode','Groep','Benodigde lokalen','Mediaan groep','Toe te wijzen groep','Boven toewijzing'])];
+  for(const lt of ALT){ const s4=stats(lt,teams); for(const w of D.weeks){ const c=weekCat(w), v=wl(lt,w,teams); const sg=s4[c];
+      pw.push([lt.loc,lt.type,w.week,w.lesweek||'vakantie',w.periode?+w.periode:'',CAT_LABEL[c],n1(v),sg?n2(sg.med):'',sg?n1(sg.alloc):'',sg?(v>sg.alloc+1e-9?'ja':'nee'):'']); } }
+  const charts=[]; for(const [nm,per] of [['Grafiek S1 lesweken','S1-les'],['Grafiek S1 toetsweken','S1-toets'],['Grafiek S2 lesweken','S2-les'],['Grafiek S2 toetsweken','S2-toets'],['Grafiek studiejaar','jaar']]) charts.push(await chartSheet(nm,per,teams));
+  const blob=buildXlsx([
+    {name:'Gegevens',rows:g,widths:[34,90]},
+    {name:'Toewijzing',rows:tw,widths:[12,22,...CATS.flatMap(()=>[10,13,13])],freeze:5,merges:twH.mg},
+    ...charts,
+    {name:'Per opleiding',rows:po,widths:[12,22,18,...CATS.flatMap(()=>[12,13])],freeze:5,merges:poH.mg},
+    {name:'Per week',rows:pw,widths:[12,22,13,9,8,26,17,14,16,15],freeze:4}]);
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fileBase()+(teams?'_selectie':'')+'.xlsx'; document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ============ Export: PDF (via afdrukken) ============ */
+function exportPdf(all){
+  if(!D||!allLocTypes().length){ alert('Er is nog niets om te exporteren.'); return; }
+  readSettings(); const teams=S.view.teams; const st=S.settings;
+  const pa=$('printArea'); pa.innerHTML='';
+  const pers=all?CATS:[S.view.per];
+  pers.forEach((per,i)=>{
+    const sec=document.createElement('section'); if(i) sec.className='pbreak';
+    sec.innerHTML=`<h1>Ruimtebehoefte${st.academie?' – '+esc(st.academie):''}</h1><div class="pmeta">${[...reportMeta(teams),['Periode in dit rapport',per==='jaar'?'Heel studiejaar':CAT_LABEL[per]]].map(([k,v])=>`<div><b>${esc(k)}</b>${esc(v)}</div>`).join('')}</div>${teams?`<div class="selbox part" style="margin:0 0 8px">Let op: combinatie van ${teams.length} van de ${D.teams.length} opleidingen, niet de hele academie.</div>`:''}<h2 class="per">${per==='jaar'?'Heel studiejaar':CAT_LABEL[per]}</h2>`;
+    pa.appendChild(sec); buildAnalysis(sec,per,teams,true);
+    const foot=document.createElement('div'); foot.className='note'; foot.style.marginTop='8px'; foot.textContent=`Parameters: ${paramMeta().map(([k,v])=>k.toLowerCase()+' '+v).join(' · ')}`; sec.appendChild(foot);
+  });
+  const old=document.title; document.title=fileBase()+(all?'_alle_periodes':'_'+S.view.per);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(()=>{ window.print(); document.title=old; },60)));
+}
+window.addEventListener('afterprint',()=>{ $('printArea').innerHTML=''; });
+
 /* ============ Samenhang ============ */
 function recompute(){ readSettings(); D=parseAll();
   if(S.view.teams) S.view.teams=S.view.teams.filter(t=>D.teams.includes(t)); if(S.view.teams&&!S.view.teams.length) S.view.teams=null;
@@ -620,8 +818,10 @@ const drop=$('drop'); drop.onclick=()=>$('file').click(); $('file').onchange=e=>
 drop.ondragover=e=>{e.preventDefault();drop.classList.add('over');}; drop.ondragleave=()=>drop.classList.remove('over');
 drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');handleFiles([...e.dataTransfer.files]);};
 $('demo').onclick=loadDemo;
+$('expXlsx').onclick=exportXlsx; $('expPdf').onclick=()=>exportPdf(false); $('expPdfAll').onclick=()=>exportPdf(true);
 $('sortSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{ S.view.sort=b.dataset.v; $('sortSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); renderAnalyse(); });
-['target','cap','roundStep','minOne'].forEach(id=>$(id).addEventListener('change',()=>{ readSettings(); if(D) renderAnalyse(); }));
+['academie','jaar','anPeriode','importDatum'].forEach(id=>$(id).addEventListener('change',()=>readSettings()));
+['target','cap','roundStep'].forEach(id=>$(id).addEventListener('change',()=>{ readSettings(); if(D) renderAnalyse(); }));
 ['minPerRE','reMax'].forEach(id=>$(id).addEventListener('change',recompute));
 $('expSet').onclick=exportSettings; $('impSetBtn').onclick=()=>$('impSet').click();
 $('impSet').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ applySettingsObj(JSON.parse(await f.text())); $('shareStatus').innerHTML=`<div class="banner ok"><span class="ic">✓</span><div>Instellingen geladen uit ${esc(f.name)}.</div></div>`; recompute(); }catch(err){ $('shareStatus').innerHTML=`<div class="banner err"><span class="ic">✕</span><div>Kon ${esc(f.name)} niet lezen.</div></div>`; } e.target.value=''; };
